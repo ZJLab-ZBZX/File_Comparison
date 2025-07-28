@@ -15,9 +15,9 @@ from multiprocessing.dummy import Pool as ThreadPool
 from PIL import Image, ImageDraw
 from skimage.measure import ransac
 
-from modules.latex2bbox_color import latex2bbox_color
-from modules.tokenize_latex.tokenize_latex import tokenize_latex
-from modules.visual_matcher import HungarianMatcher, SimpleAffineTransform
+from .modules.latex2bbox_color import latex2bbox_color
+from .modules.tokenize_latex.tokenize_latex import tokenize_latex
+from .modules.visual_matcher import HungarianMatcher, SimpleAffineTransform
 
 
 def gen_color_list(num=10, gap=15):

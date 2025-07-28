@@ -5,11 +5,11 @@ Created on Wed Feb 26 09:40:00 2025
 @author: ZJ
 """
 import os, glob, json, argparse
-from modules.latex2bbox_color import latex2bbox_color_simple
-from evaluation import batch_evaluation_multiple_pools
+from .modules.latex2bbox_color import latex2bbox_color_simple
+from .evaluation import batch_evaluation_multiple_pools
 from mf_parse_tree import handle_latex
 from multiprocessing import Pool
-from data_processor import generate_passed_pairs
+from .data_processor import generate_passed_pairs
 import shutil
 
 

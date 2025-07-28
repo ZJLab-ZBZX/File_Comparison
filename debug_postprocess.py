@@ -6,14 +6,14 @@ import shutil
 import logging
 import traceback
 from comparison_modules.image_comparison.image_comparsion import compare_image_list
-from datetime import datetime
+
 from utils.tokenize import tokenize_files,get_mf_token,special_tokenize,convert_mf_token
 from utils.postprocessor import process_result,write_diff,show_diff
 from utils.precheck import find_files
 from utils.deal_text import read_txt_to_2d_list
 import json
 from comparison_modules.latex_comparison.batch_compare import batch_compare
-
+from datetime import datetime
 logging.basicConfig(
     level=logging.INFO,  # 记录info及以上级别
     format='%(asctime)s - %(levelname)s - %(message)s',
@@ -34,7 +34,6 @@ async def main(subfolder,version1_dir,version2_dir,output_dir):
         # 预检查文件是否存在
         md_file_verison1,images_dir_version1 = find_files(version1_dir)
         md_file_verison2,images_dir_version2 = find_files(version2_dir)
-        print(images_dir_version1,images_dir_version1)
         # token化
         token_output_dir = os.path.join(output_dir,"token处理结果")
         os.makedirs(output_dir,exist_ok=True)
@@ -44,21 +43,13 @@ async def main(subfolder,version1_dir,version2_dir,output_dir):
         mf_path2 = os.path.join(version2_dir,os.path.basename(version2_dir).split(".")[0]+"_mf.txt")
         mf_index1 = get_mf_token(version1_tokens, version1_token_is_sp,output_path = mf_path1)
         mf_index2 = get_mf_token(version2_tokens, version2_token_is_sp,output_path = mf_path2)
-        # 依次调用图片处理模块、公式处理模块和表格处理模块
-        tasks = [
-            async_call(compare_image_list, images_dir_version1,images_dir_version2,os.path.join(output_dir,"图片对比结果")),
-            async_call(batch_compare,subfolder)
-        ]
-        # 获取处理结果
-        results = await asyncio.gather(*tasks, return_exceptions=True)
-        if False in results :
-            raise RuntimeError(f"数据对比失败，图片处理模块、公式处理模块和表格处理模块处理结果依次为：{results}")
-        image_result_path = results[0]
+
+        image_result_path = './compare_same_images_new.json'
         with open(image_result_path, 'r', encoding='utf-8') as f:
             json_data = json.load(f)
         new_image1_map = json_data[os.path.basename(version1_dir)]
-        new_image2_map = json_data[os.path.basename(version2_dir)]
-        mf_result = read_txt_to_2d_list(result[1])
+        new_image2_map = json_data[os.path.basename(version1_dir)]
+        mf_result = read_txt_to_2d_list('西子数据/CPS1000/passed_pairs_chain.txt')
         new_mf1_map,new_mf2_map = convert_mf_token(mf_result,
                                                    mf_index1=mf_index1,mf_index2=mf_index2,
                                                    prefix1=os.path.basename(version1_dir).split(".")[0],

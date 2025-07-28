@@ -71,29 +71,61 @@ def custom_tokenize(text, abandon=r'[\s]+'):
 
 
 
-def special_tokenize(tokens, token_is_sp,new_figures_map):
+def special_tokenize(tokens, token_is_sp,new_figures_map,new_mf_map,token_output):
     special_token = [index for index,value in enumerate(token_is_sp) if value == True]
-    special_figures = [index for index in special_token if "![](figures/" in tokens[index]]
-    tables = [index for index in special_token if "![](tables/" in tokens[index]]
-    others = [index for index in special_token if  "![](tables/" not in tokens[index] and "![](figures/" not in tokens[index]]   
-    # new_figures为字典,{原值:新值}
-    for index in special_figures:
+    figures_index = [index for index in special_token if "![](figures/" in tokens[index]]
+    tables_index = [index for index in special_token if "![](tables/" in tokens[index]]
+    mf_index = [index for index in special_token if  "![](tables/" not in tokens[index] and "![](figures/" not in tokens[index]]   
+    # new_figures_map,{原值1:新值1,原值2:新值2}
+    figure_flag = 0
+    for index in figures_index:
         if tokens[index] in new_figures_map:
             figure_flag = figure_flag + 1
             tokens[index] = new_figures_map[tokens[index]]
     if figure_flag!=len(new_figures_map):
-        print("长度不一致")
+        raise RuntimeError("处理图片token时，有token未被替换")
+    # new_mf_map，{原索引1:新值1,原索引2:新值2}
+    for key,value in new_mf_map.items():
+        if key in mf_index:
+            tokens[key] = value
+    with open(token_output, 'w', encoding='utf-8') as f:
+        for item in tokens:
+            f.write(f"{item}\n")
     return tokens
 
 def get_mf_token(tokens, token_is_sp,output_path):
     special_token = [index for index,value in enumerate(token_is_sp) if value == True]
-    others = [tokens[index] for index in special_token if  "![](tables/" not in tokens[index] and "![](figures/" not in tokens[index]]   
+    mf = [tokens[index] for index in special_token if  "![](tables/" not in tokens[index] and "![](figures/" not in tokens[index]]   
+    mf_index = [index for index in special_token if  "![](tables/" not in tokens[index] and "![](figures/" not in tokens[index]]
     with open(output_path, "w", encoding='utf-8') as f:
-        json.dump(others, f)
-    return True
+        json.dump(mf, f)
+    return mf_index
+
+def convert_mf_token(mf_list,mf_index1,mf_index2,prefix1,prefix2,outputdir):
+    number = 347262538
+    new_mf1_map = {}
+    new_mf2_map = {}
+    for pairs in mf_list:
+        for item in pairs:
+            if prefix1 in item:
+                index = mf_index1[int(item.split("_")[-1])]
+                new_mf1_map[index] = "<mf" + str(number) +">"
+            elif prefix2 in item:
+                index = mf_index2[int(item.split("_")[-1])]
+                new_mf2_map[index] = "<mf" + str(number) +">"
+            else:
+                raise RuntimeError(f"公式对比结果里未找到文件名称：{prefix1}或者{prefix2}")
+        number = number + 1
+    with open(os.path.join(outputdir, "compare_same_mf_globalIndex.json"), 'w', encoding='utf-8') as f:
+        json.dump({
+            prefix1: new_mf1_map,
+            prefix2: new_mf2_map
+        }, f, indent=4, ensure_ascii=False)
+    return new_mf1_map,new_mf2_map
 
 
 def tokenize_files(md_file_verison1,md_file_verison2,debug = False,output_dir=""):
+    os.makedirs(output_dir,exist_ok=True)
     with open(md_file_verison1, 'r', encoding='utf-8') as f:
         version1_text = f.read() 
     version1_text = clean_dollar_equations(version1_text)
