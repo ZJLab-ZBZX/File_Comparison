@@ -10,6 +10,7 @@ from .evaluation import batch_evaluation_multiple_pools
 from .mf_parse_tree import handle_latex
 from multiprocessing import Pool
 from .data_processor import generate_passed_pairs
+import traceback
 import shutil
 
 
@@ -115,7 +116,7 @@ def batch_compare(input_dir):
         generate_passed_pairs(metric_res_path, gt_list, pred_list, os.path.join(output_path, "passed_pairs_chain.txt"))
         return os.path.join(output_path, "passed_pairs_chain.txt")
     except Exception as e:
-        print("batch_compare error")
+        print("batch_compare error", traceback.format_exc())
         return False
 
 
