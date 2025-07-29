@@ -59,10 +59,10 @@ def gen_color_list(num=10, gap=15):
         color_list.append((R*gap, G*gap, B*gap))
     return color_list[1:]
 
-def batch_compare(directory_path,normalize=True,latexpdf=True):
+def batch_compare(directory_path,enable_feature1=True,enable_feature2=True):
     try:
         # ketax 进行normalize
-        if normalize:
+        if enable_feature1:
             delete_specific_files(directory_path,["passed.jsonl","failed.jsonl","passed_pairs_chain.txt"])
             mf_file_names = [name for name in glob.glob(os.path.join(directory_path, '**/*'), recursive=True)
                              if name.lower().endswith('.txt') and '_mf' in os.path.basename(name)]
@@ -88,7 +88,7 @@ def batch_compare(directory_path,normalize=True,latexpdf=True):
         passed_file_names = [name for name in glob.glob(os.path.join(directory_path, '**/*'), recursive=True)
                              if name.lower().endswith('.jsonl') and 'passed' in name]
         print(passed_file_names)
-        if latexpdf:
+        if enable_feature2:
             temp_dir = os.path.join(output_path, "temp")
             os.makedirs(temp_dir, exist_ok=True)
             total_color_list = gen_color_list(num=5800)
