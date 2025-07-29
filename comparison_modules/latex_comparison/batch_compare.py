@@ -93,6 +93,7 @@ def batch_compare(input_dir):
         myP = Pool(30)
         passed_file_names = [name for name in glob.glob(os.path.join(input_dir, '**/*'), recursive=True)
                              if name.lower().endswith('.jsonl') and 'passed' in name]
+        print(passed_file_names)
         for i, passed_file in enumerate(passed_file_names):
             with open(passed_file, 'r', encoding='utf-8') as f1:
                 lines = f1.readlines()
