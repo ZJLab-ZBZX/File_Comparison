@@ -11,7 +11,6 @@ from utils.tokenize import tokenize_files,get_mf_token,special_tokenize,convert_
 from utils.postprocessor import process_result,write_diff,show_diff
 from utils.precheck import find_files
 from utils.deal_text import read_txt_to_2d_list
-from utils.logging import setup_logging_system
 import json
 from comparison_modules.latex_comparison.batch_compare import batch_compare
 import argparse
@@ -19,29 +18,27 @@ from logging.handlers import QueueHandler, QueueListener
 from queue import Queue
 
 
-# # 创建内存队列和异步监听器
-# log_queue = Queue(maxsize=1000)  # 限制队列大小防溢出
-# file_handler = logging.FileHandler("diff.log", encoding='utf-8')
+# 创建内存队列和异步监听器
+log_queue = Queue(maxsize=1000)  # 限制队列大小防溢出
+file_handler = logging.FileHandler("diff.log", encoding='utf-8')
 
-# # 创建格式化器（新增部分）
-# formatter = logging.Formatter(
-#     fmt='%(asctime)s - %(levelname)s - %(message)s',
-#     datefmt='%Y-%m-%d %H:%M:%S'
-# )
+# 创建格式化器（新增部分）
+formatter = logging.Formatter(
+    fmt='[main]%(asctime)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
 
-# # 将格式化器应用到处理器（新增部分）
-# file_handler.setFormatter(formatter)
+# 将格式化器应用到处理器（新增部分）
+file_handler.setFormatter(formatter)
 
-# # 创建队列监听器
-# listener = QueueListener(log_queue, file_handler)
-# listener.start()
+# 创建队列监听器
+listener = QueueListener(log_queue, file_handler)
+listener.start()
 
-# # 配置Logger
-# main_logger = logging.getLogger()
-# main_logger.setLevel(logging.INFO)
-# main_logger.addHandler(QueueHandler(log_queue))  # 主线程仅推队列
-
-main_logger, module_loggers, log_listener =setup_logging_system(["image_comparision"])
+# 配置Logger
+main_logger = logging.getLogger()
+main_logger.setLevel(logging.INFO)
+main_logger.addHandler(QueueHandler(log_queue))  # 主线程仅推队列
 
 
 async def async_call(func, *args):
@@ -147,7 +144,7 @@ def main():
         output_dir = os.path.join(subfolder,"diff_output" + time_str)
         os.makedirs(output_dir,exist_ok=True)
         asyncio.run(compare(subfolder,sorted_versions[0],sorted_versions[1],output_dir))
-    log_listener.stop()
+    listener.stop()
 
 
 if __name__ == "__main__":

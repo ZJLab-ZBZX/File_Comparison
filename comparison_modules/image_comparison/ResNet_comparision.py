@@ -1,23 +1,13 @@
-import logging
 from skimage.metrics import structural_similarity as ssim
-import logging
 import torch
 import torchvision.models as models
 import torchvision.transforms as transforms
 from PIL import Image
 import torch.nn.functional as F
+from .logger import setup_logger
 
+logger = setup_logger()
 
-# logging.basicConfig(
-#     level=logging.INFO,  # 记录info及以上级别
-#     format='%(asctime)s - %(levelname)s - %(message)s',
-#     datefmt='%Y-%m-%d %H:%M:%S',
-#     handlers=[
-#         logging.StreamHandler(),  # 终端输出
-#         logging.FileHandler("image_compare.log")  # 文件输出
-#     ]
-# )
-logger = logging.getLogger("image_comparision")
 
 def resnet_cosine_similarity(img_path1, img_path2,threshold=0.95):
     logger.info(f"余弦相似度开始对比图片：{img_path1}和{img_path2}")

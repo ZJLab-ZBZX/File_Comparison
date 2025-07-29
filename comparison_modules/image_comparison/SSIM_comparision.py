@@ -3,20 +3,11 @@ from multiprocessing import Pool, Manager
 import cv2
 import numpy as np
 from skimage.metrics import structural_similarity as ssim
-import logging
 import matplotlib.pyplot as plt
+from .logger import setup_logger
 
+logger = setup_logger()
 
-# logging.basicConfig(
-#     level=logging.INFO,  # 记录info及以上级别
-#     format='%(asctime)s - %(levelname)s - %(message)s',
-#     datefmt='%Y-%m-%d %H:%M:%S',
-#     handlers=[
-#         logging.StreamHandler(),  # 终端输出
-#         logging.FileHandler("image_compare.log")  # 文件输出
-#     ]
-# )
-logger = logging.getLogger("image_comparision")
 
 def compare_images_SSIM(image_path1, image_path2,threshold=0.95,debug = False,result_output_path=""):
     logger.info(f"SSIM开始对比图片：{image_path1}和{image_path2}")

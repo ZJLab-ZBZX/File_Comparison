@@ -1,24 +1,15 @@
 import os
 import json
-import logging
 import traceback
 from datetime import datetime
 from multiprocessing import Pool, Manager
-import logging
 from .SSIM_comparision import compare_images_SSIM
 from .ResNet_comparision import resnet_cosine_similarity
 from pathlib import Path
+from .logger import setup_logger
 
-# logging.basicConfig(
-#     level=logging.INFO,  # 记录info及以上级别
-#     format='%(asctime)s - %(levelname)s - %(message)s',
-#     datefmt='%Y-%m-%d %H:%M:%S',
-#     handlers=[
-#         logging.StreamHandler(),  # 终端输出
-#         logging.FileHandler("image_compare.log")  # 文件输出
-#     ]
-# )
-logger = logging.getLogger("image_comparision")
+logger = setup_logger()
+
 
 # 全局锁初始化（用于文件写入同步）
 def init_child_process(lock):
@@ -67,6 +58,7 @@ def compare_together(image1, image2, outputdir, lock=None):
     
     # 计算综合得分
     return (score_SSIM + score_ResNet)/2 if (is_similar_SSIM and is_similar_ResNet) else 0
+
 
 # 主处理函数（多进程优化）
 def compare_image_list(image_dir1, image_dir2, outputdir, num_processes=4):
