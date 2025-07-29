@@ -17,9 +17,6 @@ import argparse
 from logging.handlers import QueueHandler, QueueListener
 from queue import Queue
 
-import logging
-from logging.handlers import QueueHandler, QueueListener
-from queue import Queue
 
 # 创建内存队列和异步监听器
 log_queue = Queue(maxsize=1000)  # 限制队列大小防溢出
