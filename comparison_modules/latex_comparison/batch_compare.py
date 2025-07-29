@@ -90,7 +90,7 @@ def batch_compare(input_dir):
         os.makedirs(os.path.join(output_path, 'vis'), exist_ok=True)
         os.makedirs(os.path.join(output_path, 'bbox'), exist_ok=True)
 
-        myP = Pool(30)
+        # myP = Pool(30)
         passed_file_names = [name for name in glob.glob(os.path.join(input_dir, '**/*'), recursive=True)
                              if name.lower().endswith('.jsonl') and 'passed' in name]
         print(passed_file_names)
@@ -101,9 +101,10 @@ def batch_compare(input_dir):
                     label = json.loads(line)
                     filename, latex = next(iter(label.items()))
                     input_arg = (latex, filename, output_path, temp_dir, total_color_list)
-                    myP.apply_async(latex2bbox_color_simple, args=(input_arg,))
-        myP.close()
-        myP.join()
+                    latex2bbox_color_simple(latex, filename, output_path, temp_dir, total_color_list)
+                    # myP.apply_async(latex2bbox_color_simple, args=(input_arg,))
+        # myP.close()
+        # myP.join()
 
         # 两个文件生成笛卡尔积对比对，然后进行对比
         metrics_res, metric_res_path, match_vis_dir, gt_list, pred_list = batch_evaluation_multiple_pools(output_path,
