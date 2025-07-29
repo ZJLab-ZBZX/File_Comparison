@@ -100,13 +100,14 @@ def main():
     
     # 解析命令行参数
     args = parser.parse_args()
+    # 使用命令行输入的路径
+    root_dir = args.root_dir
     
     if not os.path.exists(root_dir):
         logging.error(f"指定的路径不存在: {root_dir}")
         exit(1)
 
-    # 使用命令行输入的路径
-    root_dir = args.root_dir
+
     subfolders = []
     # 列出所有待对比的文件夹
     for entry in os.listdir(root_dir):
