@@ -21,6 +21,7 @@ from queue import Queue
 # 创建内存队列和异步监听器
 log_queue = Queue(maxsize=1000)  # 限制队列大小防溢出
 file_handler = logging.FileHandler("diff.log", encoding='utf-8')
+stream_handler = logging.StreamHandler()
 
 # 创建格式化器（新增部分）
 formatter = logging.Formatter(
@@ -30,9 +31,9 @@ formatter = logging.Formatter(
 
 # 将格式化器应用到处理器（新增部分）
 file_handler.setFormatter(formatter)
-
+stream_handler.setFormatter(formatter)
 # 创建队列监听器
-listener = QueueListener(log_queue, file_handler)
+listener = QueueListener(log_queue, file_handler,stream_handler)
 listener.start()
 
 # 配置Logger
@@ -51,7 +52,6 @@ async def compare(subfolder,version1_dir,version2_dir,output_dir):
         # 预检查文件是否存在
         md_file_verison1,images_dir_version1 = find_files(version1_dir)
         md_file_verison2,images_dir_version2 = find_files(version2_dir)
-        print(images_dir_version1,images_dir_version1)
         # token化
         token_output_dir = os.path.join(output_dir,"token处理结果")
         os.makedirs(output_dir,exist_ok=True)
@@ -126,7 +126,6 @@ def main():
         entry_path = os.path.join(root_dir, entry)
         if os.path.isdir(entry_path):
             subfolders.append(entry_path)
-        print(subfolders)
     for subfolder in subfolders:
         # 每个子文件夹下，有多个不同版本的文件夹
         files = os.listdir(subfolder)
