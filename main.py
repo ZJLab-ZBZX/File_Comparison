@@ -49,7 +49,7 @@ async def compare(subfolder,version1_dir,version2_dir,output_dir):
         mf_index2 = get_mf_token(version2_tokens, version2_token_is_sp,output_path = mf_path2)
         # 依次调用图片处理模块、公式处理模块和表格处理模块
         tasks = [
-            async_call(compare_image_list, images_dir_version1,images_dir_version2,os.path.join(output_dir,"图片对比结果")),
+            async_call(compare_image_list, images_dir_version1,images_dir_version2,os.path.join(output_dir,"图片对比结果"),os.cpu_count()+1),
             async_call(batch_compare,subfolder)
         ]
         # 获取处理结果

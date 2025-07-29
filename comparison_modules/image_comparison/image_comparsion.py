@@ -71,7 +71,7 @@ def compare_together(image1, image2, outputdir, lock=None):
 # 主处理函数（多进程优化）
 def compare_image_list(image_dir1, image_dir2, outputdir, num_processes=4):
     try:
-        logging.info(f"开始对比图片文件夹: {image_dir1} vs {image_dir2}")
+        logging.info(f"开始对比图片文件夹: {image_dir1} vs {image_dir2}，进程数{num_processes}")
         image_exts = ('.jpg', '.jpeg', '.png')
         
         # 获取图像列表
