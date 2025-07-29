@@ -9,12 +9,12 @@ import fitz
 
 from threading import Timer
 from PIL import Image, ImageDraw
-from modules.latex_processor import (
+from ..modules.latex_processor import (
     normalize_latex,
     token_add_color_RGB,
     clean_latex
 )
-from modules.tokenize_latex.tokenize_latex import tokenize_latex
+from ..modules.tokenize_latex.tokenize_latex import tokenize_latex
 
 
 tabular_template = r"""

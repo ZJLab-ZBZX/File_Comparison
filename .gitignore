@@ -1,0 +1,14 @@
+comparison_modules/image_comparison/__pycache__/image_comparsion.cpython-310.pyc
+comparison_modules/image_comparison/__pycache__/ResNet_comparision.cpython-310.pyc
+comparison_modules/image_comparison/__pycache__/SSIM_comparision.cpython-310.pyc
+comparison_modules/latex_comparison/__pycache__/batch_compare.cpython-310.pyc
+comparison_modules/latex_comparison/__pycache__/evaluation.cpython-310.pyc
+comparison_modules/latex_comparison/modules/__pycache__/latex_processor.cpython-310.pyc
+comparison_modules/latex_comparison/modules/__pycache__/latex2bbox_color.cpython-310.pyc
+comparison_modules/latex_comparison/modules/__pycache__/visual_matcher.cpython-310.pyc
+comparison_modules/latex_comparison/modules/tokenize_latex/__pycache__/tokenize_latex.cpython-310.pyc
+utils/__pycache__/deal_text.cpython-310.pyc
+utils/__pycache__/difflib_modified.cpython-310.pyc
+utils/__pycache__/postprocessor.cpython-310.pyc
+utils/__pycache__/precheck.cpython-310.pyc
+utils/__pycache__/tokenize.cpython-310.pyc

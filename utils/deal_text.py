@@ -1,7 +1,7 @@
 import numpy as np
 import re
 from utils.difflib_modified import SequenceMatcher
-
+import ast
 
 def clean_dollar_equations(text):
     # text = r'bb $\n\alpha $$\beta\$$$\theta$\$$$ccc$$'
@@ -61,3 +61,18 @@ def rematch_string(str1, str2):
             if not re.fullmatch(r'r*', str2[j1:j2]):
                 return False
     return True
+
+
+def read_txt_to_2d_list(file_path):
+    """
+    读取非标准格式TXT文件（每行为一个独立列表）并转换为二维列表
+    :param file_path: TXT文件路径
+    :return: 二维列表（每个子列表对应文件中的一行列表）
+    """
+    result = []
+    with open(file_path, 'r', encoding='utf-8') as f:
+        for line in f:
+            line = line.strip()  # 去除首尾空白（包括换行符）
+            parsed_line = ast.literal_eval(line)
+            result.append(parsed_line)
+    return result

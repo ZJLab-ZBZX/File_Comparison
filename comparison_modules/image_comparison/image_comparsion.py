@@ -4,11 +4,10 @@ import logging
 import traceback
 from datetime import datetime
 from multiprocessing import Pool, Manager
-from skimage.metrics import structural_similarity as ssim
 import logging
 from .SSIM_comparision import compare_images_SSIM
 from .ResNet_comparision import resnet_cosine_similarity
-
+from pathlib import Path
 
 logging.basicConfig(
     level=logging.INFO,  # 记录info及以上级别
@@ -72,7 +71,7 @@ def compare_together(image1, image2, outputdir, lock=None):
 # 主处理函数（多进程优化）
 def compare_image_list(image_dir1, image_dir2, outputdir, num_processes=4):
     try:
-        logging.info(f"开始对比图片文件夹: {image_dir1} vs {image_dir2}")
+        logging.info(f"开始对比图片文件夹: {image_dir1} vs {image_dir2}，进程数{num_processes}")
         image_exts = ('.jpg', '.jpeg', '.png')
         
         # 获取图像列表
@@ -146,8 +145,8 @@ def compare_image_list(image_dir1, image_dir2, outputdir, num_processes=4):
         new_image1_map, new_image2_map = convert_token(image_list1, image_list2, same_pairs)
         with open(os.path.join(outputdir, "compare_same_images.json"), 'w', encoding='utf-8') as f:
             json.dump({
-                "map1": new_image1_map,
-                "map2": new_image2_map
+                Path(image_dir1).parts[-2]: new_image1_map,
+                Path(image_dir2).parts[-2]: new_image2_map
             }, f, indent=4, ensure_ascii=False)
         
         logging.info(f"完成对比: 共匹配{len(same_pairs)}对图像")
@@ -173,13 +172,21 @@ def convert_token(image_list1,image_list2,same_pairs):
 if __name__ == '__main__':
     # num_pools = os.cpu_count()  # 根据CPU核心数设置
     # compare_image_list("D:/文件对比/Print_of_CPS1000_V_中英对照_内部.pdf/figures", "D:/文件对比/Print_of_CPS1000_W_中英对照_内部.pdf/figures", "D:/文件对比/图片对比结果", num_pools)
-    with open("D:/文件对比/SSIM_result/compare_image1.txt", 'r', encoding='utf-8') as f:
+    with open("D:/文件对比/output/图片对比结果/compare_image1.txt", 'r', encoding='utf-8') as f:
         content = f.read().strip()  # 读取整行内容 → "['1', '2', 'apple', '3.5']"
         image_list1 = json.loads(content) 
-    with open("D:/文件对比/SSIM_result/compare_image2.txt", 'r', encoding='utf-8') as f:
+    with open("D:/文件对比/output/图片对比结果/compare_image2.txt", 'r', encoding='utf-8') as f:
         content = f.read().strip()  # 读取整行内容 → "['1', '2', 'apple', '3.5']"
         image_list2 = json.loads(content) 
-    with open("D:/文件对比/SSIM_result/compare_same_index.txt", 'r', encoding='utf-8') as f:
+    with open("D:/文件对比/output/图片对比结果/compare_same_index.txt", 'r', encoding='utf-8') as f:
         content = f.read().strip()  # 读取整行内容 → "['1', '2', 'apple', '3.5']"
         same_pairs = json.loads(content) 
     convert_token(image_list1,image_list2,same_pairs)
+    new_image1_map, new_image2_map = convert_token(image_list1, image_list2, same_pairs)
+    image_dir1 = "CPS1000/Print_of_CPS1000_W_中英对照_内部.pdf/figures"
+    image_dir2 = "CPS1000/Print_of_CPS1000_V_中英对照_内部.pdf/figures"
+    with open(os.path.join("D:/文件对比/", "compare_same_images_new.json"), 'w', encoding='utf-8') as f:
+        json.dump({
+            Path(image_dir1).parts[-2]: new_image1_map,
+            Path(image_dir2).parts[-2]: new_image2_map
+        }, f, indent=4, ensure_ascii=False)
