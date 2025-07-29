@@ -59,12 +59,12 @@ def gen_color_list(num=10, gap=15):
         color_list.append((R*gap, G*gap, B*gap))
     return color_list[1:]
 
-def batch_compare(input_dir,normalize=True,latexpdf=True):
+def batch_compare(directory_path,normalize=True,latexpdf=True):
     try:
         # ketax 进行normalize
         if normalize:
-            delete_specific_files(input_dir,["passed.jsonl","failed.jsonl","passed_pairs_chain.txt"])
-            mf_file_names = [name for name in glob.glob(os.path.join(input_dir, '**/*'), recursive=True)
+            delete_specific_files(directory_path,["passed.jsonl","failed.jsonl","passed_pairs_chain.txt"])
+            mf_file_names = [name for name in glob.glob(os.path.join(directory_path, '**/*'), recursive=True)
                              if name.lower().endswith('.txt') and '_mf' in os.path.basename(name)]
             print(mf_file_names)
             print("size", len(mf_file_names))
@@ -84,8 +84,8 @@ def batch_compare(input_dir,normalize=True,latexpdf=True):
 
 
             # 转pdf并且提取token 和对应的bbox
-        output_path = os.path.join(input_dir, "output_mf")
-        passed_file_names = [name for name in glob.glob(os.path.join(input_dir, '**/*'), recursive=True)
+        output_path = os.path.join(directory_path, "output_mf")
+        passed_file_names = [name for name in glob.glob(os.path.join(directory_path, '**/*'), recursive=True)
                              if name.lower().endswith('.jsonl') and 'passed' in name]
         print(passed_file_names)
         if latexpdf:
