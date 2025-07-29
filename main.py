@@ -14,17 +14,35 @@ from utils.deal_text import read_txt_to_2d_list
 import json
 from comparison_modules.latex_comparison.batch_compare import batch_compare
 import argparse
+from logging.handlers import QueueHandler, QueueListener
+from queue import Queue
 
+import logging
+from logging.handlers import QueueHandler, QueueListener
+from queue import Queue
 
-logging.basicConfig(
-    level=logging.INFO,  # 记录info及以上级别
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S',
-    handlers=[
-        logging.StreamHandler(),  # 终端输出
-        logging.FileHandler("diff.log")  # 文件输出
-    ]
+# 创建内存队列和异步监听器
+log_queue = Queue(maxsize=1000)  # 限制队列大小防溢出
+file_handler = logging.FileHandler("diff.log", encoding='utf-8')
+
+# 创建格式化器（新增部分）
+formatter = logging.Formatter(
+    fmt='%(asctime)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
 )
+
+# 将格式化器应用到处理器（新增部分）
+file_handler.setFormatter(formatter)
+
+# 创建队列监听器
+listener = QueueListener(log_queue, file_handler)
+listener.start()
+
+# 配置Logger
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+logger.addHandler(QueueHandler(log_queue))  # 主线程仅推队列
+
 
 async def async_call(func, *args):
     """通用异步调用封装"""
@@ -100,13 +118,14 @@ def main():
     
     # 解析命令行参数
     args = parser.parse_args()
-    
+    # 使用命令行输入的路径
+    root_dir = args.root_dir
+
     if not os.path.exists(root_dir):
         logging.error(f"指定的路径不存在: {root_dir}")
         exit(1)
 
-    # 使用命令行输入的路径
-    root_dir = args.root_dir
+
     subfolders = []
     # 列出所有待对比的文件夹
     for entry in os.listdir(root_dir):
