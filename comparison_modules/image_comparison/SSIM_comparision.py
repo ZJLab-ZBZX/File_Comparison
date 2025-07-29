@@ -7,19 +7,19 @@ import logging
 import matplotlib.pyplot as plt
 
 
-logging.basicConfig(
-    level=logging.INFO,  # 记录info及以上级别
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S',
-    handlers=[
-        logging.StreamHandler(),  # 终端输出
-        logging.FileHandler("image_compare.log")  # 文件输出
-    ]
-)
-
+# logging.basicConfig(
+#     level=logging.INFO,  # 记录info及以上级别
+#     format='%(asctime)s - %(levelname)s - %(message)s',
+#     datefmt='%Y-%m-%d %H:%M:%S',
+#     handlers=[
+#         logging.StreamHandler(),  # 终端输出
+#         logging.FileHandler("image_compare.log")  # 文件输出
+#     ]
+# )
+logger = logging.getLogger("image_comparision")
 
 def compare_images_SSIM(image_path1, image_path2,threshold=0.95,debug = False,result_output_path=""):
-    logging.info(f"SSIM开始对比图片：{image_path1}和{image_path2}")
+    logger.info(f"SSIM开始对比图片：{image_path1}和{image_path2}")
     # 1. 读取图片并统一尺寸
     with open(image_path1, "rb") as f:
         img_data = np.frombuffer(f.read(), dtype=np.uint8)
@@ -28,7 +28,7 @@ def compare_images_SSIM(image_path1, image_path2,threshold=0.95,debug = False,re
         img_data = np.frombuffer(f.read(), dtype=np.uint8)
         img2 = cv2.imdecode(img_data, cv2.IMREAD_COLOR)    
     if img1 is None or img2 is None:
-        logging.error(f"图片读取失败，请检查路径:{image_path1}和{image_path2}")
+        logger.error(f"图片读取失败，请检查路径:{image_path1}和{image_path2}")
         raise ValueError("图片读取失败，请检查路径")
     
     # 自动调整至相同尺寸（取最小尺寸）
@@ -64,6 +64,6 @@ def compare_images_SSIM(image_path1, image_path2,threshold=0.95,debug = False,re
         score = ssim(gray1, gray2, full=False, win_size=11, data_range=255)
     is_similar = score >= threshold
     
-    logging.info(f"SSIM对比结束：{image_path1}和{image_path2}，分数：{score},阈值:{threshold}")
+    logger.info(f"SSIM对比结束：{image_path1}和{image_path2}，分数：{score},阈值:{threshold}")
     return score, is_similar
 

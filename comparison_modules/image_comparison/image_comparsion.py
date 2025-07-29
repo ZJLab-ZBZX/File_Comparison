@@ -9,15 +9,16 @@ from .SSIM_comparision import compare_images_SSIM
 from .ResNet_comparision import resnet_cosine_similarity
 from pathlib import Path
 
-logging.basicConfig(
-    level=logging.INFO,  # 记录info及以上级别
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S',
-    handlers=[
-        logging.StreamHandler(),  # 终端输出
-        logging.FileHandler("image_compare.log")  # 文件输出
-    ]
-)
+# logging.basicConfig(
+#     level=logging.INFO,  # 记录info及以上级别
+#     format='%(asctime)s - %(levelname)s - %(message)s',
+#     datefmt='%Y-%m-%d %H:%M:%S',
+#     handlers=[
+#         logging.StreamHandler(),  # 终端输出
+#         logging.FileHandler("image_compare.log")  # 文件输出
+#     ]
+# )
+logger = logging.getLogger("image_comparision")
 
 # 全局锁初始化（用于文件写入同步）
 def init_child_process(lock):
@@ -38,7 +39,7 @@ def compare_together_wrapper(args):
         score = compare_together(image1, image2, outputdir, lock)
         return (i, j, score)
     except Exception as e:
-        logging.error(f"对比失败: {image1} vs {image2}: {str(e)}{traceback.format_exc()}")
+        logger.error(f"对比失败: {image1} vs {image2}: {str(e)}{traceback.format_exc()}")
         return (i, j, 0)  # 返回默认值
 
 # 原始对比函数（增加锁参数）
@@ -70,7 +71,7 @@ def compare_together(image1, image2, outputdir, lock=None):
 # 主处理函数（多进程优化）
 def compare_image_list(image_dir1, image_dir2, outputdir, num_processes=4):
     try:
-        logging.info(f"开始对比图片文件夹: {image_dir1} vs {image_dir2}，进程数{num_processes}")
+        logger.info(f"开始对比图片文件夹: {image_dir1} vs {image_dir2}，进程数{num_processes}")
         image_exts = ('.jpg', '.jpeg', '.png')
         
         # 获取图像列表
@@ -128,10 +129,10 @@ def compare_image_list(image_dir1, image_dir2, outputdir, num_processes=4):
                     max_score = diff_matrix[i][j]
                     max_j = j
                 elif max_score > 0 and diff_matrix[i][j] == max_score:
-                    logging.warning(f"图片{image_list1[i]}和两张图片相似度一样：{image_list2[max_j]}、{image_list2[j]}，(分数={max_score:.4f})")
+                    logger.warning(f"图片{image_list1[i]}和两张图片相似度一样：{image_list2[max_j]}、{image_list2[j]}，(分数={max_score:.4f})")
             if max_score > 0 and max_j != -1:
                 same_pairs.append((i, max_j))
-                logging.info(f"最佳匹配: {image_list1[i]} -> {image_list2[max_j]} (分数={max_score:.4f})")
+                logger.info(f"最佳匹配: {image_list1[i]} -> {image_list2[max_j]} (分数={max_score:.4f})")
 
         with open(os.path.join(outputdir, "compare_same_index.txt"), 'w', encoding='utf-8') as f:
             json.dump(same_pairs, f,ensure_ascii=False)
@@ -148,12 +149,12 @@ def compare_image_list(image_dir1, image_dir2, outputdir, num_processes=4):
                 Path(image_dir2).parts[-2]: new_image2_map
             }, f, indent=4, ensure_ascii=False)
         
-        logging.info(f"完成对比: 共匹配{len(same_pairs)}对图像")
+        logger.info(f"完成对比: 共匹配{len(same_pairs)}对图像")
         return os.path.join(outputdir, "compare_same_images.json")
         
     except Exception as e:
         tb_str = traceback.format_exc()
-        logging.error(f"对比失败: {e}\n{tb_str}")
+        logger.error(f"对比失败: {e}\n{tb_str}")
         return False
 
 

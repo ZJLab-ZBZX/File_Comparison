@@ -8,19 +8,19 @@ from PIL import Image
 import torch.nn.functional as F
 
 
-logging.basicConfig(
-    level=logging.INFO,  # 记录info及以上级别
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S',
-    handlers=[
-        logging.StreamHandler(),  # 终端输出
-        logging.FileHandler("image_compare.log")  # 文件输出
-    ]
-)
-
+# logging.basicConfig(
+#     level=logging.INFO,  # 记录info及以上级别
+#     format='%(asctime)s - %(levelname)s - %(message)s',
+#     datefmt='%Y-%m-%d %H:%M:%S',
+#     handlers=[
+#         logging.StreamHandler(),  # 终端输出
+#         logging.FileHandler("image_compare.log")  # 文件输出
+#     ]
+# )
+logger = logging.getLogger("image_comparision")
 
 def resnet_cosine_similarity(img_path1, img_path2,threshold=0.95):
-    logging.info(f"余弦相似度开始对比图片：{img_path1}和{img_path2}")
+    logger.info(f"余弦相似度开始对比图片：{img_path1}和{img_path2}")
     # 1. 加载预训练ResNet50模型（移除全连接层）
     model = models.resnet50(pretrained=True)
     model = torch.nn.Sequential(*list(model.children())[:-1])  # 移除最后一层分类层
@@ -51,5 +51,5 @@ def resnet_cosine_similarity(img_path1, img_path2,threshold=0.95):
     similarity = F.cosine_similarity(features1.unsqueeze(0), features2.unsqueeze(0), dim=1)
     score = similarity.item()
     is_similar = score >= threshold
-    logging.info(f"余弦相似度对比结束：{img_path1}和{img_path2}，分数：{score},阈值:{threshold}")
+    logger.info(f"余弦相似度对比结束：{img_path1}和{img_path2}，分数：{score},阈值:{threshold}")
     return score,is_similar
