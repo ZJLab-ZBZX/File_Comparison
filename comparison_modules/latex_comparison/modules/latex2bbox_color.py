@@ -235,8 +235,7 @@ def latex2bbox_color(input_arg):
         vis.save(output_vis_path)
 
 
-def latex2bbox_color_simple(input_arg):
-    latex, basename, output_path, temp_dir, total_color_list = input_arg
+def latex2bbox_color_simple(latex, basename, output_path, temp_dir, total_color_list):
     print("***********************" + basename + "**************************")
     template = tabular_template if "tabular" in latex else formular_template
     output_bbox_path = os.path.join(output_path, 'bbox', basename + '.jsonl')

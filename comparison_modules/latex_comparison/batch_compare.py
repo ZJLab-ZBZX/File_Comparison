@@ -10,7 +10,7 @@ from evaluation import batch_evaluation_multiple_pools
 from mf_parse_tree import handle_latex
 from multiprocessing import Pool
 from data_processor import generate_passed_pairs
-import shutil
+import re
 
 
 def delete_specific_files(root_dir, file_names):
@@ -43,6 +43,32 @@ def delete_specific_files(root_dir, file_names):
     return deleted_files
 
 
+def safe_json_loads(json_str):
+    """处理常见JSON格式问题的安全加载函数"""
+    # 1. 处理字节顺序标记(BOM)
+    if json_str.startswith('\ufeff'):
+        json_str = json_str[1:]
+
+    # 2. 处理单引号情况
+    if "'" in json_str:
+        # 简单替换单引号 -> 双引号
+        json_str = json_str.replace("'", '"')
+
+    # 3. 处理无引号key的情况
+    if ": {" in json_str and "'" not in json_str and '"' not in json_str:
+        # 使用正则添加双引号
+        json_str = re.sub(r'([{\[,])\s*([^{[\s,]+?)\s*:', r'\1"\2":', json_str)
+
+    try:
+        return json.loads(json_str)
+    except json.JSONDecodeError as e:
+        # 终极解决方法：尝试ast.literal_eval
+        try:
+            from ast import literal_eval
+            return literal_eval(json_str)
+        except:
+            raise e
+
 def gen_color_list(num=10, gap=15):
     num += 1
     single_num = 255 // gap + 1
@@ -60,13 +86,13 @@ def gen_color_list(num=10, gap=15):
 
 def batch_compare(input_dir):
     try:
-        # ketax 进行normalize
+    # ketax 进行normalize
         delete_specific_files(input_dir,["passed.jsonl","failed.jsonl","passed_pairs_chain.txt"])
         mf_file_names = [name for name in glob.glob(os.path.join(input_dir, '**/*'), recursive=True)
                          if name.lower().endswith('.txt') and '_mf' in os.path.basename(name)]
         print(mf_file_names)
         print("size", len(mf_file_names))
-        pool = Pool(36)
+        pool = Pool(10)
         total_latex_number = 0
         for i, mf_file_name in enumerate(mf_file_names):
             with open(mf_file_name, 'r', encoding='utf-8') as f:
@@ -74,6 +100,7 @@ def batch_compare(input_dir):
                 print(f'第{i}个文件{mf_file_name}包含公式{len(latex_list)}')
                 total_latex_number = total_latex_number + len(latex_list)
                 for j, latex_code in enumerate(latex_list):
+                    # handle_latex(mf_file_name,latex_code,j)
                     pool.apply_async(handle_latex, args=(mf_file_name, latex_code, j))
         pool.close()
         pool.join()
@@ -96,11 +123,12 @@ def batch_compare(input_dir):
         for i, passed_file in enumerate(passed_file_names):
             with open(passed_file, 'r', encoding='utf-8') as f1:
                 lines = f1.readlines()
-                for i, line in enumerate(lines):
+                for j, line in enumerate(lines):
                     label = json.loads(line)
                     filename, latex = next(iter(label.items()))
-                    input_arg = (latex, filename, output_path, temp_dir, total_color_list)
-                    myP.apply_async(latex2bbox_color_simple, args=(input_arg,))
+                    # input_arg = (latex, filename, output_path, temp_dir, total_color_list)
+                    # latex2bbox_color_simple(latex, filename, output_path, temp_dir, total_color_list)
+                    myP.apply_async(latex2bbox_color_simple, args=(latex, filename, output_path, temp_dir, total_color_list))
         myP.close()
         myP.join()
 
@@ -113,7 +141,7 @@ def batch_compare(input_dir):
         generate_passed_pairs(metric_res_path, gt_list, pred_list, os.path.join(output_path, "passed_pairs_chain.txt"))
         return os.path.join(output_path, "passed_pairs_chain.txt")
     except Exception as e:
-        print("batch_compare error")
+        print(f"batch_compare error{str(e)}")
         return False
 
 
