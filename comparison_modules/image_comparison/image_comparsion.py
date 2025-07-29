@@ -49,8 +49,10 @@ def compare_together(image1, image2, outputdir, lock=None):
     
     # 执行图像对比算法
     score_SSIM, is_similar_SSIM = compare_images_SSIM(image1, image2)
-    score_ResNet, is_similar_ResNet = resnet_cosine_similarity(image1, image2)
-    
+    if is_similar_SSIM:
+        score_ResNet, is_similar_ResNet = resnet_cosine_similarity(image1, image2)
+    else:
+        score_ResNet, is_similar_ResNet = 0 ,False
     # 加锁写入结果
     log_entry = (
         f"{datetime.now()}  {base1}和{base2}的SSIM分数是{score_SSIM}，"
