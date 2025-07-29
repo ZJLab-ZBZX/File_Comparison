@@ -178,10 +178,10 @@ def normalize_latex(latex_code):
     with tempfile.NamedTemporaryFile(dir="./temp/", delete=False) as temp_file:
         temp_file.write(latex_code.encode())  # 写入数据
         if platform.system() == 'Windows':
-            cmd = 'type {} | {}'.format(temp_file.name, "node modules/tokenize_latex/preprocess_formula.js normalize")
+            cmd = 'type {} | {}'.format(temp_file.name, "node /File_Comparison/comparison_modules/latex_comparison/modules/tokenize_latex/preprocess_formula.js normalize")
         else:
-            cmd = 'cat {} | {}'.format(temp_file.name, "node modules/tokenize_latex/preprocess_formula.js normalize")
-        # print(cmd)
+            cmd = 'cat {} | {}'.format(temp_file.name, "node /File_Comparison/comparison_modules/latex_comparison/modules/tokenize_latex/preprocess_formula.js normalize")
+        print(cmd)
     #ret = subprocess.call(cmd, shell=True)
     result = subprocess.run(cmd, 
                                 shell=True, 
