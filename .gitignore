@@ -12,3 +12,5 @@ utils/__pycache__/difflib_modified.cpython-310.pyc
 utils/__pycache__/postprocessor.cpython-310.pyc
 utils/__pycache__/precheck.cpython-310.pyc
 utils/__pycache__/tokenize.cpython-310.pyc
+image_compare.log
+diff.log
