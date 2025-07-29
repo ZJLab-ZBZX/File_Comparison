@@ -181,7 +181,7 @@ def normalize_latex(latex_code):
             cmd = 'type {} | {}'.format(temp_file.name, "node /File_Comparison/comparison_modules/latex_comparison/modules/tokenize_latex/preprocess_formula.js normalize")
         else:
             cmd = 'cat {} | {}'.format(temp_file.name, "node /File_Comparison/comparison_modules/latex_comparison/modules/tokenize_latex/preprocess_formula.js normalize")
-        print(cmd)
+        # print(cmd)
     #ret = subprocess.call(cmd, shell=True)
     result = subprocess.run(cmd, 
                                 shell=True, 
