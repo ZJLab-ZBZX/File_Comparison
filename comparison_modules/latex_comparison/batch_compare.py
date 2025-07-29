@@ -6,7 +6,7 @@ Created on Wed Feb 26 09:40:00 2025
 """
 import os, glob, json, argparse
 from .modules.latex2bbox_color import latex2bbox_color_simple
-from .evaluation import batch_evaluation_multiple_pools
+from .evaluation import batch_evaluation
 from .mf_parse_tree import handle_latex
 from multiprocessing import Pool
 from .data_processor import generate_passed_pairs
@@ -59,56 +59,59 @@ def gen_color_list(num=10, gap=15):
         color_list.append((R*gap, G*gap, B*gap))
     return color_list[1:]
 
-def batch_compare(input_dir):
+def batch_compare(input_dir,normalize=True,latexpdf=True):
     try:
         # ketax 进行normalize
-        delete_specific_files(input_dir,["passed.jsonl","failed.jsonl","passed_pairs_chain.txt"])
-        mf_file_names = [name for name in glob.glob(os.path.join(input_dir, '**/*'), recursive=True)
-                         if name.lower().endswith('.txt') and '_mf' in os.path.basename(name)]
-        print(mf_file_names)
-        print("size", len(mf_file_names))
-        pool = Pool(36)
-        total_latex_number = 0
-        for i, mf_file_name in enumerate(mf_file_names):
-            with open(mf_file_name, 'r', encoding='utf-8') as f:
-                latex_list = json.load(f)
-                print(f'第{i}个文件{mf_file_name}包含公式{len(latex_list)}')
-                total_latex_number = total_latex_number + len(latex_list)
-                for j, latex_code in enumerate(latex_list):
-                    pool.apply_async(handle_latex, args=(mf_file_name, latex_code, j))
-        pool.close()
-        pool.join()
+        if normalize:
+            delete_specific_files(input_dir,["passed.jsonl","failed.jsonl","passed_pairs_chain.txt"])
+            mf_file_names = [name for name in glob.glob(os.path.join(input_dir, '**/*'), recursive=True)
+                             if name.lower().endswith('.txt') and '_mf' in os.path.basename(name)]
+            print(mf_file_names)
+            print("size", len(mf_file_names))
+            pool = Pool(36)
+            total_latex_number = 0
+            for i, mf_file_name in enumerate(mf_file_names):
+                with open(mf_file_name, 'r', encoding='utf-8') as f:
+                    latex_list = json.load(f)
+                    print(f'第{i}个文件{mf_file_name}包含公式{len(latex_list)}')
+                    total_latex_number = total_latex_number + len(latex_list)
+                    for j, latex_code in enumerate(latex_list):
+                        pool.apply_async(handle_latex, args=(mf_file_name, latex_code, j))
+            pool.close()
+            pool.join()
 
-        print(f"{total_latex_number}个公式的katax normalize 完成")
+            print(f"{total_latex_number}个公式的katax normalize 完成")
 
-        # 转pdf并且提取token 和对应的bbox
+
+            # 转pdf并且提取token 和对应的bbox
         output_path = os.path.join(input_dir, "output_mf")
-
-        temp_dir = os.path.join(output_path, "temp")
-        os.makedirs(temp_dir, exist_ok=True)
-        total_color_list = gen_color_list(num=5800)
-
-        os.makedirs(os.path.join(output_path, 'vis'), exist_ok=True)
-        os.makedirs(os.path.join(output_path, 'bbox'), exist_ok=True)
-
-        # myP = Pool(30)
         passed_file_names = [name for name in glob.glob(os.path.join(input_dir, '**/*'), recursive=True)
                              if name.lower().endswith('.jsonl') and 'passed' in name]
         print(passed_file_names)
-        for i, passed_file in enumerate(passed_file_names):
-            with open(passed_file, 'r', encoding='utf-8') as f1:
-                lines = f1.readlines()
-                for i, line in enumerate(lines):
-                    label = json.loads(line)
-                    filename, latex = next(iter(label.items()))
-                    input_arg = (latex, filename, output_path, temp_dir, total_color_list)
-                    latex2bbox_color_simple(latex, filename, output_path, temp_dir, total_color_list)
-                    # myP.apply_async(latex2bbox_color_simple, args=(input_arg,))
-        # myP.close()
-        # myP.join()
+        if latexpdf:
+            temp_dir = os.path.join(output_path, "temp")
+            os.makedirs(temp_dir, exist_ok=True)
+            total_color_list = gen_color_list(num=5800)
+
+            os.makedirs(os.path.join(output_path, 'vis'), exist_ok=True)
+            os.makedirs(os.path.join(output_path, 'bbox'), exist_ok=True)
+
+            # myP = Pool(30)
+
+            for i, passed_file in enumerate(passed_file_names):
+                with open(passed_file, 'r', encoding='utf-8') as f1:
+                    lines = f1.readlines()
+                    for i, line in enumerate(lines):
+                        label = json.loads(line)
+                        filename, latex = next(iter(label.items()))
+                        input_arg = (latex, filename, output_path, temp_dir, total_color_list)
+                        latex2bbox_color_simple(latex, filename, output_path, temp_dir, total_color_list)
+                        # myP.apply_async(latex2bbox_color_simple, args=(input_arg,))
+            # myP.close()
+            # myP.join()
 
         # 两个文件生成笛卡尔积对比对，然后进行对比
-        metrics_res, metric_res_path, match_vis_dir, gt_list, pred_list = batch_evaluation_multiple_pools(output_path,
+        metrics_res, metric_res_path, match_vis_dir, gt_list, pred_list = batch_evaluation(output_path,
                                                                                                           passed_file_names[
                                                                                                               0],
                                                                                                           passed_file_names[
