@@ -255,7 +255,7 @@ def batch_evaluation(data_root,file1,file2):
     print(f"文件1包含公式{len(list1)},文件2包含公式{len(list2)},对比的公式个数应该是:{len(list1)*len(list2)},实际为:{len(gt_list)}")
     metrics_per_img = {}
 
-    with open('/File_Comparison/temp/ab.txt', 'w', encoding='utf-8') as f:
+    with open(os.path.join(data_root,'ab.txt'), 'w', encoding='utf-8') as f:
         # 写入表头
         f.write("index\tground_truth\tprediction\n")
 
@@ -264,7 +264,7 @@ def batch_evaluation(data_root,file1,file2):
             # 写入配对数据
             f.write(f"{i}\t{gt}\t{pred}\n")
 
-    print(f"成功保存 {len(gt_list)}对数据到 ab.txt")
+    print(f"成功保存 {len(gt_list)}对数据到 {os.path.join(data_root,'ab.txt')}")
     for i, gt_item in enumerate(tqdm(gt_list)):
         pred_item = pred_list[i]
         gt_valid, pred_valid = True, True
