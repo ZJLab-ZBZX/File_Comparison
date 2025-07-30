@@ -6,6 +6,7 @@ import logging
 import subprocess
 import numpy as np
 import fitz
+import platform
 
 from threading import Timer
 from PIL import Image, ImageDraw
@@ -81,11 +82,83 @@ def run_cmd(cmd, timeout_sec=30):
         stdout,stderr = proc.communicate()
     finally:
         timer.cancel()
-        
+
+
+def convert_with_ghostscript(pdf_path, png_path, density=200):
+    """
+    Linux 专用 Ghostscript PDF 转 PNG 函数（简化版）
+
+    参数:
+        pdf_path (str): PDF 文件路径
+        png_path (str): 输出 PNG 文件路径
+        density (int): DPI 密度 (默认200)
+
+    返回:
+        bool: 转换成功返回 True，否则 False
+    """
+    try:
+        # 1. 验证输入文件
+        if not os.path.exists(pdf_path):
+            logging.error(f"PDF 文件不存在: {pdf_path}")
+            return False
+
+        # 2. 创建输出目录
+        os.makedirs(os.path.dirname(png_path), exist_ok=True)
+
+        # 3. 构建 Ghostscript 命令
+        gs_cmd = [
+            "gs",
+            "-dALLOWPSTRANSPARENCY",
+            "-dPDFSTOPONERROR",
+            "-dNOPAUSE",
+            "-dBATCH",
+            "-dQUIET",
+            "-sDEVICE=png16m",
+            f"-r{density}",
+            "-dTextAlphaBits=4",
+            "-dGraphicsAlphaBits=4",
+            f"-sOutputFile={png_path}",
+            pdf_path
+        ]
+
+        logging.info(f"执行 Ghostscript 命令: {' '.join(gs_cmd)}")
+
+        # 4. 执行转换
+        result = subprocess.run(
+            gs_cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            check=True
+        )
+
+        # 5. 验证输出文件
+        if os.path.exists(png_path) and os.path.getsize(png_path) > 0:
+            logging.info(f"Ghostscript 转换成功: {pdf_path} → {png_path}")
+            return True
+        else:
+            logging.warning("Ghostscript 转换完成但未生成有效文件")
+            return False
+
+    except subprocess.CalledProcessError as e:
+        logging.error(f"Ghostscript 错误 ({e.returncode}):\n{e.stderr}")
+        return False
+
+    except FileNotFoundError:
+        logging.error("Ghostscript (gs) 未安装或不在 PATH 中")
+        logging.error("请安装: sudo apt install ghostscript")
+        return False
+
+    except Exception as e:
+        logging.error(f"转换过程中发生意外错误: {str(e)}")
+        return False
 def convert_pdf2img(pdf_filename, png_filename):
-    cmd = "magick -density 200 -quality 100 %s %s"%(pdf_filename, png_filename)
-    print(cmd)
-    os.system(cmd)
+    if platform.system() == 'Windows':
+        cmd = "magick -density 200 -quality 100 %s %s"%(pdf_filename, png_filename)
+        os.system(cmd)
+    else:
+        convert_with_ghostscript(pdf_filename,png_filename)
+
 
 def crop_image(image_path, pad=8):
     img = Image.open(image_path).convert("L")
