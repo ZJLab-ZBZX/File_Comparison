@@ -267,6 +267,7 @@ def batch_evaluation(data_root,file1,file2):
     print(f"成功保存 {len(gt_list)}对数据到 {os.path.join(data_root,'ab.txt')}")
     for i, gt_item in enumerate(tqdm(gt_list)):
         pred_item = pred_list[i]
+        # base_name = gt_item+"_"+pred_item
         gt_valid, pred_valid = True, True
         gt_item_bbox_file_path = os.path.join(bbox_dir, gt_item+".jsonl")
         pred_item_bbox_file_path = os.path.join(bbox_dir, pred_item+'.jsonl')

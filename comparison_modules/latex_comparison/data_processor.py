@@ -7,6 +7,7 @@
 import json
 import re
 import os
+from collections import defaultdict, deque
 
 def replace_newlines_in_specific_fields(
         json_file_path,
@@ -190,9 +191,79 @@ def add_equal_group(item1, item2,groups):
     return groups
 
 
+def generate_passed_pairs(metric_res_path, case_file, out_file):
+    # 读取JSON指标文件，获取F1_score=1.0的索引
+    with open(metric_res_path, 'r') as f:
+        metric_data = json.load(f)
 
+    passed_indices = set()
+    details = metric_data["details"]
+    for idx, scores in details.items():
+        if scores.get("F1_score") == 1.0:
+            passed_indices.add(int(idx))
 
-def generate_passed_pairs(metric_res_path,gt_list,pred_list,out_file):
+    # 构建图（邻接表）和所有节点集合
+    graph = defaultdict(set)
+    all_nodes = set()
+
+    # 读取case_file并构建图关系
+    with open(case_file, 'r', encoding='utf-8') as f:
+        # 跳过标题行
+        next(f)
+
+        for line in f:
+            parts = line.strip().split('\t')
+            if len(parts) < 3:
+                continue
+
+            index_val = int(parts[0])
+            node_u = parts[1]
+            node_v = parts[2]
+
+            # 只处理F1_score=1.0的行
+            if index_val in passed_indices:
+                all_nodes.add(node_u)
+                all_nodes.add(node_v)
+
+                # 如果是不同的节点，建立双向连接
+                if node_u != node_v:
+                    graph[node_u].add(node_v)
+                    graph[node_v].add(node_u)
+
+    # 查找连通分量
+    visited = set()
+    connected_components = []
+
+    for node in sorted(all_nodes):  # 有序遍历以确保结果稳定
+        if node not in visited:
+            # 开始新的连通分量
+            component = []
+            queue = deque([node])
+            visited.add(node)
+
+            while queue:
+                current = queue.popleft()
+                component.append(current)
+
+                # 遍历所有相邻节点
+                for neighbor in graph.get(current, []):
+                    if neighbor not in visited:
+                        visited.add(neighbor)
+                        queue.append(neighbor)
+
+            # 当前连通分量内部按字母顺序排序
+            component.sort()
+            connected_components.append(component)
+
+    # 连通分量之间按最小元素排序
+    connected_components.sort(key=lambda x: x[0])
+
+    # 写入输出文件
+    with open(out_file, 'w') as f:
+        for comp in connected_components:
+            # 将列表转换为字符串表示形式
+            f.write(str(comp) + '\n')
+def generate_passed_pairs_bk(metric_res_path,gt_list,pred_list,out_file):
     with open(metric_res_path, 'r', encoding='utf-8') as f:
         data = json.load(f)
     # 筛选符合条件的记录
