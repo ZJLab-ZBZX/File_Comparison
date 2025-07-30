@@ -111,7 +111,7 @@ def batch_compare(directory_path,enable_feature1=True,enable_feature2=True):
             # myP.join()
 
         # 两个文件生成笛卡尔积对比对，然后进行对比
-        # metrics_res, metric_res_path, match_vis_dir, gt_list, pred_list = batch_evaluation(output_path,passed_file_names[0],passed_file_names[1])
+        metrics_res, metric_res_path, match_vis_dir, gt_list, pred_list = batch_evaluation(output_path,passed_file_names[0],passed_file_names[1])
         generate_passed_pairs(os.path.join(output_path,"metrics_res.json"),os.path.join(output_path,"ab.txt"), os.path.join(output_path, "passed_pairs_chain.txt"))
         return os.path.join(output_path, "passed_pairs_chain.txt")
     except Exception as e:
