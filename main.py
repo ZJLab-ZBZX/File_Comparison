@@ -12,11 +12,11 @@ from utils.postprocessor import process_result,write_diff,show_diff
 from utils.precheck import find_files
 from utils.deal_text import read_txt_to_2d_list
 import json
-from comparison_modules.latex_comparison.batch_compare import batch_compare
+# from comparison_modules.latex_comparison.batch_compare import batch_compare
 import argparse
 from logging.handlers import QueueHandler, QueueListener
 from queue import Queue
-
+import re
 
 # 创建内存队列和异步监听器
 log_queue = Queue(maxsize=1000)  # 限制队列大小防溢出
@@ -65,7 +65,7 @@ async def compare(subfolder,version1_dir,version2_dir,output_dir):
         # 依次调用图片处理模块、公式处理模块和表格处理模块
         tasks = [
             async_call(compare_image_list, images_dir_version1,images_dir_version2,os.path.join(output_dir,"图片对比结果"),os.cpu_count()+1),
-            async_call(batch_compare,subfolder)
+            # async_call(batch_compare,subfolder)
         ]
         # 获取处理结果
         main_logger.info(f"完成图片、公式和表格处理：{version1_dir}和{version2_dir}")
@@ -110,13 +110,17 @@ def main():
     parser = argparse.ArgumentParser(description='处理文件夹对比任务')
     parser.add_argument('root_dir', 
                         type=str, 
-                        help='根目录路径，包含需要对比的子文件夹',
+                        help='根目录路径，包含需要对比的子文件夹')
+    parser.add_argument('output_dir', 
+                        type=str, 
+                        help='结果输出路径',
                         default="./")
     
     # 解析命令行参数
     args = parser.parse_args()
     # 使用命令行输入的路径
     root_dir = args.root_dir
+    output_dir = args.output_dir
     if not os.path.exists(root_dir):
         main_logger.error(f"指定的路径不存在: {root_dir}")
         exit(1)
@@ -126,7 +130,8 @@ def main():
         entry_path = os.path.join(root_dir, entry)
         if os.path.isdir(entry_path):
             subfolders.append(entry_path)
-    for subfolder in subfolders:
+    sorted_subfolders = sorted(subfolders)
+    for subfolder in sorted_subfolders:
         # 每个子文件夹下，有多个不同版本的文件夹
         files = os.listdir(subfolder)
         versions = []
@@ -140,9 +145,20 @@ def main():
         sorted_versions = sorted(versions)
         now = datetime.now()
         time_str = now.strftime("%Y%m%d_%H%M")
-        output_dir = os.path.join(subfolder,"diff_output" + time_str)
-        os.makedirs(output_dir,exist_ok=True)
-        asyncio.run(compare(subfolder,sorted_versions[0],sorted_versions[1],output_dir))
+        pattern = os.path.basename(subfolder)+r"[^A-Za-z]*([A-Za-z]+)[^A-Za-z]*\.pdf"
+        prestr = ""
+        match_num = 0
+        for filename in sorted_versions:
+            match = re.search(pattern, filename)
+            if match:
+                prestr = prestr + "_" + match.group(1)
+                match_num = match_num + 1
+        if match_num !=2:
+            logging.warning(f"{subfolder}目录下获取版本号失败")
+            prestr = os.path.basename(subfolder)
+        output_sub_dir = os.path.join(output_dir,os.path.basename(subfolder)+prestr+time_str)
+        os.makedirs(output_sub_dir,exist_ok=True)
+        asyncio.run(compare(subfolder,sorted_versions[0],sorted_versions[1],output_sub_dir))
     listener.stop()
 
 
