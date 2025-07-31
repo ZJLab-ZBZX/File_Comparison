@@ -6,7 +6,7 @@ Created on Wed Feb 26 09:40:00 2025
 """
 import os, glob, json, argparse
 from .modules.latex2bbox_color import latex2bbox_color_simple
-from .evaluation import batch_evaluation
+from .evaluation import batch_evaluation,batch_evaluation_multiple_pools
 from .mf_parse_tree import handle_latex
 from multiprocessing import Pool
 from .data_processor import generate_passed_pairs
@@ -111,12 +111,8 @@ def batch_compare(directory_path,enable_feature1=True,enable_feature2=True):
             # myP.join()
 
         # 两个文件生成笛卡尔积对比对，然后进行对比
-        metrics_res, metric_res_path, match_vis_dir, gt_list, pred_list = batch_evaluation(output_path,
-                                                                                                          passed_file_names[
-                                                                                                              0],
-                                                                                                          passed_file_names[
-                                                                                                              1])
-        generate_passed_pairs(metric_res_path, gt_list, pred_list, os.path.join(output_path, "passed_pairs_chain.txt"))
+        metrics_res, metric_res_path, match_vis_dir, gt_list, pred_list = batch_evaluation_multiple_pools(output_path,passed_file_names[0],passed_file_names[1])
+        generate_passed_pairs(os.path.join(output_path,"metrics_res.json"),os.path.join(output_path,"ab.txt"), os.path.join(output_path, "passed_pairs_chain.txt"))
         return os.path.join(output_path, "passed_pairs_chain.txt")
     except Exception as e:
         print("batch_compare error", traceback.format_exc())
