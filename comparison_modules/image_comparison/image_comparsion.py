@@ -39,21 +39,31 @@ def compare_together(image1, image2, outputdir, lock=None):
     base2 = os.path.splitext(os.path.basename(image2))[0]
     
     # 执行图像对比算法
-    score_SSIM, is_similar_SSIM = compare_images_SSIM(image1, image2)
-    if is_similar_SSIM:
-        score_ResNet, is_similar_ResNet = resnet_cosine_similarity(image1, image2)
-    else:
-        score_ResNet, is_similar_ResNet = 0 ,False
-    # 加锁写入结果
-    log_entry = (
-        f"{datetime.now()}  {base1}和{base2}的SSIM分数是{score_SSIM}，"
-        f"是否相似：{is_similar_SSIM}，余弦相似度分数是{score_ResNet}，"
-        f"是否相似：{is_similar_ResNet}\n"
-    )
+    try:
+        score_SSIM, is_similar_SSIM = compare_images_SSIM(image1, image2)
+        if is_similar_SSIM:
+            score_ResNet, is_similar_ResNet = resnet_cosine_similarity(image1, image2)
+        else:
+            score_ResNet, is_similar_ResNet = 0 ,False
+
+        # 加锁写入结果
+        log_entry = (
+            f"{datetime.now()}  {base1}和{base2}的SSIM分数是{score_SSIM}，"
+            f"是否相似：{is_similar_SSIM}，余弦相似度分数是{score_ResNet}，"
+            f"是否相似：{is_similar_ResNet}\n"
+        )
+
+    except Exception as e:
+        tb_str = traceback.format_exc()
+        logger.error(f"{image1}和{image2}对比失败: {e}\n{tb_str}")
+        log_entry = f"{image1}和{image2}对比失败: {e}\n{tb_str}"
+        is_similar_SSIM,is_similar_ResNet = False,False
+        score_SSIM, score_ResNet =0,0
     if lock:
         with lock:
             with open(os.path.join(outputdir, "compare_score.txt"), 'a', encoding='utf-8') as file:
                 file.write(log_entry)
+
     
     # 计算综合得分
     return (score_SSIM + score_ResNet)/2 if (is_similar_SSIM and is_similar_ResNet) else 0

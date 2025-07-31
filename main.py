@@ -12,7 +12,7 @@ from utils.postprocessor import process_result,write_diff,show_diff
 from utils.precheck import find_files
 from utils.deal_text import read_txt_to_2d_list
 import json
-# from comparison_modules.latex_comparison.batch_compare import batch_compare
+from comparison_modules.latex_comparison.batch_compare import batch_compare
 import argparse
 from logging.handlers import QueueHandler, QueueListener
 from queue import Queue
@@ -65,7 +65,7 @@ async def compare(subfolder,version1_dir,version2_dir,output_dir):
         # 依次调用图片处理模块、公式处理模块和表格处理模块
         tasks = [
             async_call(compare_image_list, images_dir_version1,images_dir_version2,os.path.join(output_dir,"图片对比结果"),os.cpu_count()+1),
-            # async_call(batch_compare,subfolder)
+            async_call(batch_compare,mf_path1,mf_path2)
         ]
         # 获取处理结果
         main_logger.info(f"完成图片、公式和表格处理：{version1_dir}和{version2_dir}")
