@@ -139,26 +139,30 @@ def main():
             file_path = os.path.join(subfolder, file)
             if os.path.isdir(file_path) and ".pdf" in file:
                 versions.append(file_path)
-        if len(versions) != 2:
+        if len(versions) < 2:
             main_logger.warning(f"{subfolder}文件夹下有{len(versions)}个版本")
             continue
         sorted_versions = sorted(versions)
-        now = datetime.now()
-        time_str = now.strftime("%Y%m%d_%H%M")
-        pattern = os.path.basename(subfolder)+r"[^A-Za-z]*([A-Za-z]+)[^A-Za-z]*\.pdf"
-        prestr = ""
-        match_num = 0
-        for filename in sorted_versions:
-            match = re.search(pattern, filename)
-            if match:
-                prestr = prestr + "_" + match.group(1)
-                match_num = match_num + 1
-        if match_num !=2:
-            logging.warning(f"{subfolder}目录下获取版本号失败")
-            prestr = os.path.basename(subfolder)
-        output_sub_dir = os.path.join(output_dir,os.path.basename(subfolder)+prestr+time_str)
-        os.makedirs(output_sub_dir,exist_ok=True)
-        asyncio.run(compare(subfolder,sorted_versions[0],sorted_versions[1],output_sub_dir))
+        compare_dirs = [list(pair) for pair in zip(sorted_versions, sorted_versions[1:])]
+        num = 1
+        for pair in compare_dirs:
+            now = datetime.now()
+            time_str = now.strftime("%Y%m%d_%H%M")
+            pattern = os.path.basename(subfolder)+r"[^A-Za-z]*([A-Za-z]+)[^A-Za-z]*\.pdf"
+            prestr = ""
+            match_num = 0
+            for filename in pair:
+                match = re.search(pattern, filename)
+                if match:
+                    prestr = prestr + "_" + match.group(1)
+                    match_num = match_num + 1
+            if match_num !=2:
+                logging.warning(f"{subfolder}{pair}目录下获取版本号失败")
+                prestr = os.path.basename(subfolder) + str(num)
+                num = num + 1
+            output_sub_dir = os.path.join(output_dir,os.path.basename(subfolder)+prestr+time_str)
+            os.makedirs(output_sub_dir,exist_ok=True)
+            asyncio.run(compare(subfolder,sorted_versions[0],sorted_versions[1],output_sub_dir))
     listener.stop()
 
 
