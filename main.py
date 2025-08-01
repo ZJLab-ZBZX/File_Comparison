@@ -12,7 +12,7 @@ from utils.postprocessor import process_result,write_diff,show_diff
 from utils.precheck import find_files
 from utils.deal_text import read_txt_to_2d_list
 import json
-from comparison_modules.latex_comparison.batch_compare import batch_compare
+# from comparison_modules.latex_comparison.batch_compare import batch_compare
 import argparse
 from logging.handlers import QueueHandler, QueueListener
 from queue import Queue
@@ -46,7 +46,7 @@ async def async_call(func, *args):
     """通用异步调用封装"""
     return await asyncio.to_thread(func, *args)
 
-async def compare(subfolder,version1_dir,version2_dir,output_dir):
+async def compare(version1_dir,version2_dir,output_dir):
     main_logger.info(f"开始对比：{version1_dir}和{version2_dir}")
     try:
         # 预检查文件是否存在
@@ -102,7 +102,6 @@ async def compare(subfolder,version1_dir,version2_dir,output_dir):
     except Exception as e:
         tb_str = traceback.format_exc()  # 返回 Traceback 字符串
         main_logger.error(f"对比失败：{version1_dir}和{version2_dir}: {e}\n{tb_str}")
-        return False
     main_logger.info(f"对比结束，结果保存在{output_dir}")
 
 
@@ -146,23 +145,28 @@ def main():
         compare_dirs = [list(pair) for pair in zip(sorted_versions, sorted_versions[1:])]
         num = 1
         for pair in compare_dirs:
-            now = datetime.now()
-            time_str = now.strftime("%Y%m%d_%H%M")
-            pattern = os.path.basename(subfolder)+r"[^A-Za-z]*([A-Za-z]+)[^A-Za-z]*\.pdf"
-            prestr = ""
-            match_num = 0
-            for filename in pair:
-                match = re.search(pattern, filename)
-                if match:
-                    prestr = prestr + "_" + match.group(1)
-                    match_num = match_num + 1
-            if match_num !=2:
-                logging.warning(f"{subfolder}{pair}目录下获取版本号失败")
-                prestr = os.path.basename(subfolder) + str(num)
-                num = num + 1
-            output_sub_dir = os.path.join(output_dir,os.path.basename(subfolder)+prestr+time_str)
-            os.makedirs(output_sub_dir,exist_ok=True)
-            asyncio.run(compare(subfolder,sorted_versions[0],sorted_versions[1],output_sub_dir))
+            try:
+                now = datetime.now()
+                time_str = now.strftime("%Y%m%d_%H%M")
+                pattern = os.path.basename(subfolder)+r"[^A-Za-z]*([A-Za-z]+)[^A-Za-z]*\.pdf"
+                prestr = ""
+                match_num = 0
+                for filename in pair:
+                    match = re.search(pattern, filename)
+                    if match:
+                        prestr = prestr + "_" + match.group(1)
+                        match_num = match_num + 1
+                if match_num !=2:
+                    logging.warning(f"{subfolder}{pair}目录下获取版本号失败")
+                    prestr = os.path.basename(subfolder) + str(num)
+                    num = num + 1
+                output_sub_dir = os.path.join(output_dir,os.path.basename(subfolder)+prestr+time_str)
+                os.makedirs(output_sub_dir,exist_ok=True)
+                asyncio.run(compare(pair[0],pair[1],output_sub_dir))
+            except Exception as e:
+                tb_str = traceback.format_exc()  # 返回 Traceback 字符串
+                main_logger.error(f"对比失败：{pair}: {e}\n{tb_str}")
+                continue
     listener.stop()
 
 

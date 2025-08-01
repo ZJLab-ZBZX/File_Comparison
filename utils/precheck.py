@@ -9,7 +9,6 @@ def find_files(version_dir):
                 md_file = entry.path
             if entry.is_dir() and entry.name == "figures":
                 images_dir = entry.path
-    if md_file != "" and images_dir != "":
-        return md_file,images_dir
-    else:
-        raise FileNotFoundError(f"文件夹下文件不完整，{version_dir}")
+    if md_file =="" or images_dir =="":
+        raise RuntimeError(f"文件夹不完整{version_dir}")
+    return md_file,images_dir
