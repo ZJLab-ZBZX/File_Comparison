@@ -12,7 +12,7 @@ from utils.postprocessor import process_result,write_diff,show_diff
 from utils.precheck import find_files
 from utils.deal_text import read_txt_to_2d_list
 import json
-# from comparison_modules.latex_comparison.batch_compare import batch_compare
+from comparison_modules.latex_comparison.batch_compare import batch_compare
 import argparse
 from logging.handlers import QueueHandler, QueueListener
 from queue import Queue
