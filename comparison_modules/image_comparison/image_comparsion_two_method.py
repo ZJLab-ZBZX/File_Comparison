@@ -4,6 +4,7 @@ import traceback
 from datetime import datetime
 from multiprocessing import Pool, Manager
 from .SSIM_comparision import compare_images_SSIM
+from .ResNet_comparision import resnet_cosine_similarity
 from pathlib import Path
 from .logger import setup_logger
 
@@ -40,18 +41,24 @@ def compare_together(image1, image2, outputdir, lock=None):
     # 执行图像对比算法
     try:
         score_SSIM, is_similar_SSIM = compare_images_SSIM(image1, image2)
+        if is_similar_SSIM:
+            score_ResNet, is_similar_ResNet = resnet_cosine_similarity(image1, image2)
+        else:
+            score_ResNet, is_similar_ResNet = 0 ,False
 
         # 加锁写入结果
         log_entry = (
             f"{datetime.now()}  {base1}和{base2}的SSIM分数是{score_SSIM}，"
-            f"是否相似：{is_similar_SSIM}\n"
+            f"是否相似：{is_similar_SSIM}，余弦相似度分数是{score_ResNet}，"
+            f"是否相似：{is_similar_ResNet}\n"
         )
 
     except Exception as e:
         tb_str = traceback.format_exc()
         logger.error(f"{image1}和{image2}对比失败: {e}\n{tb_str}")
         log_entry = f"{image1}和{image2}对比失败: {e}\n{tb_str}"
-        score_SSIM,is_similar_SSIM = 0,False
+        is_similar_SSIM,is_similar_ResNet = False,False
+        score_SSIM, score_ResNet =0,0
     if lock:
         with lock:
             with open(os.path.join(outputdir, "compare_score.txt"), 'a', encoding='utf-8') as file:
@@ -59,7 +66,7 @@ def compare_together(image1, image2, outputdir, lock=None):
 
     
     # 计算综合得分
-    return score_SSIM if is_similar_SSIM else 0
+    return (score_SSIM + score_ResNet)/2 if (is_similar_SSIM and is_similar_ResNet) else 0
 
 
 # 主处理函数（多进程优化）
@@ -123,8 +130,8 @@ def compare_image_list(image_dir1, image_dir2, outputdir, num_processes=4):
                 if diff_matrix[i][j] > max_score:
                     max_score = diff_matrix[i][j]
                     max_j = j
-                if diff_matrix[i][j]> 0 and max_score>0:
-                    logger.warning(f"图片{image_list1[i]}和多张图片相似度较高：{image_list2[max_j]}、{image_list2[j]}，(分数={max_score:.4f})")
+                elif max_score > 0 and diff_matrix[i][j] == max_score:
+                    logger.warning(f"图片{image_list1[i]}和两张图片相似度一样：{image_list2[max_j]}、{image_list2[j]}，(分数={max_score:.4f})")
             if max_score > 0 and max_j != -1:
                 same_pairs.append((i, max_j))
                 logger.info(f"最佳匹配: {image_list1[i]} -> {image_list2[max_j]} (分数={max_score:.4f})")
