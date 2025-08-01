@@ -107,7 +107,7 @@ def compare_image_list(image_dir1, image_dir2, outputdir, num_processes=4):
         # 等待所有任务完成
         myPool.close()
         myPool.join()
-        
+        logger.info(f"图片相似度计算完成：{image_dir1} vs {image_dir2}")
         # 收集结果并填充矩阵
         for res in async_results:
             i, j, score = res.get()
@@ -123,7 +123,7 @@ def compare_image_list(image_dir1, image_dir2, outputdir, num_processes=4):
                 if diff_matrix[i][j] > max_score:
                     max_score = diff_matrix[i][j]
                     max_j = j
-                if diff_matrix[i][j]> 0 and max_score>0:
+                if diff_matrix[i][j]> 0 and max_score>0 and max_j!=j:
                     logger.warning(f"图片{image_list1[i]}和多张图片相似度较高：{image_list2[max_j]}、{image_list2[j]}，(分数={max_score:.4f})")
             if max_score > 0 and max_j != -1:
                 same_pairs.append((i, max_j))
