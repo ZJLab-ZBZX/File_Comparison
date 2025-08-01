@@ -17,8 +17,13 @@ import numpy as np
 import subprocess, json, shutil, signal
 import piexif
 import platform, tempfile
+from pathlib import Path
+import traceback
+import logging
+from .logger import setup_logger
 
-        
+
+logger = setup_logger(__name__)
 formular_template = r"""
     \documentclass[12pt]{article}
     \usepackage[landscape]{geometry}
@@ -91,9 +96,10 @@ def write_passed_image(target_dir,index, latex):
             f.write(json_line + '\n')
 
     except Exception as e:
-        print(f"操作失败: {str(e)}")
+        logger.error(f"写passed.jsonl文件失败: {str(e)}")
 
 def write_failed_image(target_dir,index, latex):
+    logger.info(f"第{index}个公式写入failed.jsonl")
     file_key = os.path.basename(target_dir)
     jsonl_path = os.path.join(target_dir, "failed.jsonl")
     try:
@@ -104,7 +110,7 @@ def write_failed_image(target_dir,index, latex):
             f.write(json_line + '\n')
 
     except Exception as e:
-        print(f"操作失败: {str(e)}")
+        logger.error(f"写入failed.jsonl失败: {str(e)}")
 
 
 def run_cmd(command, timeout=10):
@@ -169,80 +175,90 @@ def read_text_from_image(image_path):
 
 
 def normalize_latex(latex_code):
+    logger.debug(f"开始规范化LaTeX表达式 {latex_code}")
     latex_code = re.sub(r'\\begin{(equation|split|align|alignedat|alignat|eqnarray)\*?}(.+?)\\end{\1\*?}', r'\\begin{aligned}\2\\end{aligned}', latex_code, flags=re.S)
     latex_code = re.sub(r'\\begin{(smallmatrix)\*?}(.+?)\\end{\1\*?}', r'\\begin{matrix}\2\\end{matrix}', latex_code, flags=re.S)
+    try:
+        with tempfile.NamedTemporaryFile(dir="./temp/", delete=False) as temp_file:
+            temp_file.write(latex_code.encode())  # 写入数据
+            temp_file_path = Path(temp_file.name)
+            js_path = Path(
+                "/File_Comparison/comparison_modules/latex_comparison/modules/tokenize_latex/preprocess_formula.js")
+            if not js_path.exists():
+                raise FileNotFoundError(f"JavaScript处理脚本不存在: {js_path}")
+            if platform.system() == 'Windows':
+                cmd = f'type "{temp_file_path}" | node "{js_path.resolve()}" normalize'
+            else:
+                cmd = f'cat "{temp_file_path}" | node "{js_path.resolve()}" normalize'
+            logger.info(f"执行外部命令: {cmd}")
 
-    # cmd = r"cat %s | node %s %s > %s " % (temp_file, os.path.join(os.path.dirname(__file__), 'preprocess_formula.js'), 'normalize', middle_file)
-    # cmd = r"type %s | node %s %s > %s " % (temp_file, os.path.join('normalize_latex', 'preprocess_formula.js'), 'normalize', middle_file)
 
-    with tempfile.NamedTemporaryFile(dir="./temp/", delete=False) as temp_file:
-        temp_file.write(latex_code.encode())  # 写入数据
-        if platform.system() == 'Windows':
-            cmd = 'type {} | {}'.format(temp_file.name, "node /File_Comparison/comparison_modules/latex_comparison/modules/tokenize_latex/preprocess_formula.js normalize")
-        else:
-            cmd = 'cat {} | {}'.format(temp_file.name, "node /File_Comparison/comparison_modules/latex_comparison/modules/tokenize_latex/preprocess_formula.js normalize")
-        # print(cmd)
-    #ret = subprocess.call(cmd, shell=True)
-    result = subprocess.run(cmd, 
-                                shell=True, 
-                                #check=True, 
-                                stdout=subprocess.PIPE, 
-                                stderr=subprocess.PIPE 
-                                )
-    output =  result.stdout.decode('utf-8', errors='replace')
-    error = result.stderr.decode('utf-8', errors='replace') 
-    os.remove(temp_file.name)
-    # output, error = run_cmd(cmd)
-    # error = error.decode('utf-8', errors='replace')
-    # output = output.decode('utf-8', errors='replace')
-    return error, output
-
+        #ret = subprocess.call(cmd, shell=True)
+        result = subprocess.run(cmd,
+                                    shell=True,
+                                    #check=True,
+                                    stdout=subprocess.PIPE,
+                                    stderr=subprocess.PIPE
+                                    )
+        output =  result.stdout.decode('utf-8', errors='replace')
+        error = result.stderr.decode('utf-8', errors='replace')
+        os.remove(temp_file_path)
+        if error:
+            logger.warning(f"Node.js错误输出: {error[:200] + '...' if len(error) > 200 else error}")
+        logger.info(f"LaTeX规范化成功")
+        return error, output
+    except Exception as gen_ex:
+        logger.critical(f"意外错误: {gen_ex}", exc_info=True)
+        # 记录详细的异常堆栈
+        tb = traceback.format_exc()
+        logger.error(f"完整堆栈跟踪:\n{tb}")
+        return "未知错误:", ""
 
 def handle_latex(file_name,latex_code,index):
-    print(f"处理第{index}个公式:{latex_code}")
+    logger.info(f"处理第{index}个公式:{latex_code}")
     output_dir = os.path.dirname(file_name)
     if latex_code is None:
-        return
-    if latex_code.startswith(r'\[') and latex_code.endswith(r'\]'):
-        latex_code = latex_code[2:-2]
-    elif latex_code.startswith(r'\(') and latex_code.endswith(r'\)'):
-        latex_code = latex_code[2:-2]
-    elif latex_code.startswith('$') and latex_code.endswith('$'):
-        latex_code = latex_code[1:-1]
-    latex_code = latex_code.replace('\n', ' ').strip()
-    latex_code = re.sub(r'@', r'{ \\text {嚻} }', latex_code)
-    for i in range(100):
-        # print('latex_code', latex_code)
-        error, normalized_latex = normalize_latex(latex_code)
-        if 'parseerror' in error.lower():
-            if 'rawMessage: \'Undefined control sequence: ' in error:
-                uc = error.split('rawMessage: \'Undefined control sequence: ')[1].split('\' }')[0]
-                print('uc', uc)
-                if uc[2:].isalpha():
-                    latex_code = re.sub(rf'{uc}(?=[^a-zA-Z]|$)', rf'{{ \\text {{欃亹{uc[2:]}}} }}', latex_code)
+        logger.error(f"处理公式失败 [{index}]: 公式为空 ")
+        return False
+    try:
+        if latex_code.startswith(r'\[') and latex_code.endswith(r'\]'):
+            latex_code = latex_code[2:-2]
+        elif latex_code.startswith(r'\(') and latex_code.endswith(r'\)'):
+            latex_code = latex_code[2:-2]
+        elif latex_code.startswith('$') and latex_code.endswith('$'):
+            latex_code = latex_code[1:-1]
+        latex_code = latex_code.replace('\n', ' ').strip()
+        latex_code = re.sub(r'@', r'{ \\text {嚻} }', latex_code)
+        for i in range(100):
+            # print('latex_code', latex_code)
+            error, normalized_latex = normalize_latex(latex_code)
+            if 'parseerror' in error.lower():
+                if 'rawMessage: \'Undefined control sequence: ' in error:
+                    uc = error.split('rawMessage: \'Undefined control sequence: ')[1].split('\' }')[0]
+                    print('uc', uc)
+                    if uc[2:].isalpha():
+                        latex_code = re.sub(rf'{uc}(?=[^a-zA-Z]|$)', rf'{{ \\text {{欃亹{uc[2:]}}} }}', latex_code)
+                    else:
+                        break
                 else:
                     break
             else:
                 break
-        else:
-            break
-    # error = '\n'.join([l for l in error.split('\n') if l not in [
-    #     'LaTeX-incompatible input and strict mode is set to \'warn\': Too few columns specified in the {array} column argument. [textEnv]',
-    #     'LaTeX-incompatible input and strict mode is set to \'warn\': LaTeX\'s accent \\textcircled works only in text mode [mathVsTextAccents]',
-    #     'LaTeX-incompatible input and strict mode is set to \'warn\': LaTeX\'s accent \\r works only in text mode [mathVsTextAccents]',
-    #     'LaTeX-incompatible input and strict mode is set to \'warn\': LaTeX\'s accent \\v works only in text mode [mathVsTextAccents]'
-    #     ]]).strip()
-    error = '\n'.join([l for l in error.split('\n') if not l.startswith('LaTeX-incompatible input and strict mode is set to \'warn\':')])
-    if len(error) > 0:
-        normalized_latex = ''
-        print("katex parse error")
-        write_failed_image(output_dir, index, latex_code)
-    else:
-        normalized_latex = re.sub(r'{\s*\\text\s*{欃亹([^}]+?)}\s*}', r'\\\1', normalized_latex)
-        normalized_latex = re.sub(r'{\s*\\text\s*{嚻}\s*}', r'@', normalized_latex)
-        write_passed_image(output_dir, index, normalized_latex)
 
-    return #error, normalized_latex
+        error = '\n'.join([l for l in error.split('\n') if not l.startswith('LaTeX-incompatible input and strict mode is set to \'warn\':')])
+        if len(error) > 0:
+            normalized_latex = ''
+            logger.info(f"第{index}个公式katex parse error: {latex_code}")
+            write_failed_image(output_dir, index, latex_code)
+        else:
+            normalized_latex = re.sub(r'{\s*\\text\s*{欃亹([^}]+?)}\s*}', r'\\\1', normalized_latex)
+            normalized_latex = re.sub(r'{\s*\\text\s*{嚻}\s*}', r'@', normalized_latex)
+            write_passed_image(output_dir, index, normalized_latex)
+        return True
+    except Exception as e:
+        logger.error(f"第{index}个公式normalize失败: {str(e)}")
+        logger.exception("完整异常信息:")
+        return False
 
 
 def compile_latex(latex_code, temp_dir='temp'):

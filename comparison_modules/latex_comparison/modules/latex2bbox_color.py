@@ -16,7 +16,9 @@ from ..modules.latex_processor import (
     clean_latex
 )
 from ..modules.tokenize_latex.tokenize_latex import tokenize_latex
+from ..logger import setup_logger
 
+logger = setup_logger(__name__)
 
 tabular_template = r"""
 \documentclass[12pt]{article}
@@ -73,7 +75,6 @@ formular_template = r"""
 
 
 def run_cmd(cmd, timeout_sec=30):
-    print(cmd)
     proc = subprocess.Popen(cmd, shell=True)
     kill_proc = lambda p: p.kill()
     timer = Timer(timeout_sec, kill_proc, [proc])
@@ -309,16 +310,14 @@ def latex2bbox_color(input_arg):
 
 
 def latex2bbox_color_simple(latex, basename, output_path, temp_dir, total_color_list):
-    print("***********************" + basename + "**************************")
+    logger.info("***********************" + basename + "**************************")
     template = tabular_template if "tabular" in latex else formular_template
     output_bbox_path = os.path.join(output_path, 'bbox', basename + '.jsonl')
     output_vis_path = os.path.join(output_path, 'vis', basename + '.png')
     output_base_path = os.path.join(output_path, 'vis', basename + '_base.png')
 
     try:
-        # print(f'原始的latex：{latex}')
         latex = normalize_latex(latex)
-        print(f'normalized后的的latex：{latex}')
         token_list = []
         l_split = latex.strip().split(' ')
         color_list = total_color_list[0:len(l_split)]
@@ -340,10 +339,8 @@ def latex2bbox_color_simple(latex, basename, output_path, temp_dir, total_color_
         final_latex = formular_template.replace("<PaperSize>", str(paper_size)) % rgb_latex
         # print("final_latex",final_latex)
     except Exception as e:
-        log = f"ERROR, Preprocess latex failed: {basename}; {e}."
-        print(log)
-        logging.info(log)
-        return
+        logging.error(f"处理latex失败:{basename}; {e}")
+        return False
 
     tex_file_path = os.path.join(temp_dir, basename + '.tex')
     tex_filename = basename + '.tex'
@@ -352,12 +349,10 @@ def latex2bbox_color_simple(latex, basename, output_path, temp_dir, total_color_
         print(final_latex, file=w)
     run_cmd(f"pdflatex -interaction=nonstopmode -output-directory={temp_dir} {tex_filename}")  # >/dev/null")
     pdf_filename = tex_filename[:-4] + '.pdf'
-    print('pdf_filename', pdf_filename)
     if not os.path.exists(os.path.join(temp_dir,pdf_filename)):
-        log = f"ERROR, Compile pdf failed: {pdf_filename}"
-        print(log)
-        logging.info(log)
+        logging.error(f"ERROR, Compile pdf failed: {pdf_filename}")
     else:
+        logging.info(f"latex转pdf成功,文件: {pdf_filename}")
         dpi = 300
         doc = fitz.open(os.path.join(temp_dir,pdf_filename))
         page = doc.load_page(0)

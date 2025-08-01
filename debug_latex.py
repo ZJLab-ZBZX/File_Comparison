@@ -4,49 +4,31 @@ from comparison_modules.latex_comparison.batch_compare import batch_compare
 
 
 def main():
-    # 创建参数解析器
+    # 创建简化的参数解析器
     parser = argparse.ArgumentParser(
-        description='批量比较LaTeX文件',
+        description='比较两个LaTeX文件',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
 
-    # 修改为可选的位置参数
+    # 添加两个必须的文件路径参数
     parser.add_argument(
-        'directory_path',
+        'file_path_1',
         type=str,
-        nargs='?',  # 关键修改：0或1个参数
-        default='/data/西子数据/CPS1000',
-        help='要处理的目录路径（默认：/data/西子数据/CPS1000）'
+        help='第一个要比较的文件路径'
     )
 
-    # 添加布尔类型参数1（默认True，可通过命令行设为False）
     parser.add_argument(
-        '--disable-feature1',
-        dest='enable_feature1',
-        action='store_false',
-        default=True,
-        help='禁用功能1（默认启用）'
-    )
-
-    # 添加布尔类型参数2（默认True，可通过命令行设为False）
-    parser.add_argument(
-        '--disable-feature2',
-        dest='enable_feature2',
-        action='store_false',
-        default=True,
-        help='禁用功能2（默认启用）'
+        'file_path_2',
+        type=str,
+        help='第二个要比较的文件路径'
     )
 
     # 解析参数
     args = parser.parse_args()
 
-    # 调用批量比较函数，传递参数
+    # 直接调用比较函数（不带任何额外参数）
     try:
-        result = batch_compare(
-            directory_path=args.directory_path,
-            enable_feature1=args.enable_feature1,
-            enable_feature2=args.enable_feature2
-        )
+        result = batch_compare(args.file_path_1, args.file_path_2)
         print(result)
     except Exception as e:
         print(f"处理失败: {str(e)}")

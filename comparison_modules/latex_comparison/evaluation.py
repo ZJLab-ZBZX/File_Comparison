@@ -18,8 +18,9 @@ from skimage.measure import ransac
 from .modules.latex2bbox_color import latex2bbox_color
 from .modules.tokenize_latex.tokenize_latex import tokenize_latex
 from .modules.visual_matcher import HungarianMatcher, SimpleAffineTransform
+from .logger import setup_logger
 
-
+logger = setup_logger(__name__)
 def gen_color_list(num=10, gap=15):
     num += 1
     single_num = 255 // gap + 1
@@ -415,34 +416,81 @@ def batch_evaluation(data_root,file1,file2):
     return metrics_res, metric_res_path, match_vis_dir,gt_list,pred_list
 
 
-def process_one_pair(args):
-    i, gt_item, pred_item, data_root, min_samples, residual_threshold, max_trials, max_iter = args
-    bbox_dir = os.path.join(data_root, "bbox")
-    vis_dir = os.path.join(data_root, "vis")
-    match_vis_dir = os.path.join(data_root, "vis_match")
+def compare_basename_chars(path1, path2):
+    """
+    比较两个路径的basename，返回不同字符组成的字符串
 
-    gt_item_bbox_file_path = os.path.join(bbox_dir, gt_item + ".jsonl")
-    pred_item_bbox_file_path = os.path.join(bbox_dir, pred_item + '.jsonl')
+    参数:
+    path1 (str): 第一个路径
+    path2 (str): 第二个路径
+
+    返回:
+    str: 两个basename中不同字符组成的字符串（如 "VW"）
+    """
+    # 获取两个路径的basename
+    basename1 = os.path.basename(path1)
+    basename2 = os.path.basename(path2)
+
+    # 如果两个basename相同，返回空字符串
+    if basename1 == basename2:
+        logger.error(f"两个文件的basename相同{path1},{path2}")
+        return ""
+
+    # 找出不同字符
+    diff_chars = []
+    min_len = min(len(basename1), len(basename2))
+
+    for i in range(min_len):
+        char1 = basename1[i]
+        char2 = basename2[i]
+        if char1 != char2:
+            # 只添加不同的字符
+            diff_chars.append(char1)
+            diff_chars.append(char2)
+
+    # 将不同字符连接成字符串
+    return ''.join(diff_chars)
+def process_one_pair(args):
+    i, gt_item, pred_item, data_root_1,data_root_2, compare_result_dir,min_samples, residual_threshold, max_trials, max_iter = args
+    bbox_dir_gt = os.path.join(data_root_1, "bbox")
+    vis_dir_gt = os.path.join(data_root_1, "vis")
+    bbox_dir_pred = os.path.join(data_root_2, "bbox")
+    vis_dir_pred = os.path.join(data_root_2, "vis")
+    match_vis_dir = os.path.join(compare_result_dir, "vis_match")
+
+    gt_item_bbox_file_path = os.path.join(bbox_dir_gt, gt_item + ".jsonl")
+    pred_item_bbox_file_path = os.path.join(bbox_dir_pred, pred_item + '.jsonl')
+
 
     # 处理GT bbox
     if not os.path.exists(gt_item_bbox_file_path):
+        logger.error(f"{gt_item_bbox_file_path}不存在，无法对比，直接返回0")
         return i, {"recall": 0, "precision": 0, "F1_score": 0}
     with open(gt_item_bbox_file_path, 'r') as f:
         box_gt = [json.loads(line) for line in f if json.loads(line).get('bbox')]
     if not box_gt:
+        logger.error(f"{gt_item_bbox_file_path}读出内容为空，无法对比，直接返回0")
         return i, {"recall": 0, "precision": 0, "F1_score": 0}
 
     # 处理Pred bbox
     if not os.path.exists(pred_item_bbox_file_path):
+        logger.error(f"{pred_item_bbox_file_path}不存在，无法对比，直接返回0")
         return i, {"recall": 0, "precision": 0, "F1_score": 0}
     with open(pred_item_bbox_file_path, 'r') as f:
         box_pred = [json.loads(line) for line in f if json.loads(line).get('bbox')]
     if not box_pred:
+        logger.error(f"{pred_item_bbox_file_path}读出内容为空，无法对比，直接返回0")
         return i, {"recall": 0, "precision": 0, "F1_score": 0}
 
     # 加载图像
-    gt_img_path = os.path.join(vis_dir, gt_item + "_base.png")
-    pred_img_path = os.path.join(vis_dir, pred_item + "_base.png")
+    gt_img_path = os.path.join(vis_dir_gt, gt_item + "_base.png")
+    pred_img_path = os.path.join(vis_dir_pred, pred_item + "_base.png")
+    if not os.path.exists(gt_img_path):
+        logger.error(f"图片{gt_img_path}不存在，无法对比，直接返回")
+        return i, {"recall": 0, "precision": 0, "F1_score": 0}
+    if not os.path.exists(pred_img_path):
+        logger.error(f"图片{pred_img_path}不存在，无法对比，直接返回")
+        return i, {"recall": 0, "precision": 0, "F1_score": 0}
     img_gt = Image.open(gt_img_path)
     img_pred = Image.open(pred_img_path)
 
@@ -541,22 +589,38 @@ def process_one_pair(args):
     }
 
 
-def batch_evaluation_multiple_pools(data_root, file1, file2):
+def batch_evaluation_multiple_pools(data_root_1,data_root_2, file1, file2):
     with open(file1, 'r', encoding='utf-8') as f1:
         list1 = [next(iter(json.loads(item).items()))[0].replace('\\', '_') for item in f1]
     with open(file2, 'r', encoding='utf-8') as f2:
         list2 = [next(iter(json.loads(item).items()))[0].replace('\\', '_') for item in f2]
 
+    compare_result_dir = os.path.join(os.path.dirname(data_root_1),compare_basename_chars(data_root_1, data_root_2))
+    os.makedirs(compare_result_dir, exist_ok=True)
+    logger.info(f"比较结果存入文件夹{compare_result_dir}中")
     # 创建笛卡尔积
     gt_list = [a for a in list1 for b in list2]
     pred_list = [b for a in list1 for b in list2]
-    print(f"文件1包含公式{len(list1)}, 文件2包含公式{len(list2)}, 对比公式数: {len(gt_list)}")
+    logger.info(f"文件1包含公式{len(list1)},文件2包含公式{len(list2)},对比的公式个数应该是:{len(list1) * len(list2)},实际为:{len(gt_list)}")
+
+    test_cases_file_path = os.path.join(compare_result_dir, 'ab.txt')
+    logger.info(f"比较对存在{test_cases_file_path}中")
+    with open(test_cases_file_path, 'w', encoding='utf-8') as f:
+        # 写入表头
+        f.write("index\tground_truth\tprediction\n")
+
+        # 遍历所有元素
+        for i, (gt, pred) in enumerate(zip(gt_list, pred_list)):
+            # 写入配对数据
+            f.write(f"{i}\t{gt}\t{pred}\n")
+
+    logger.info(f"成功保存 {len(gt_list)}对数据到 {test_cases_file_path}")
 
     # 准备多进程参数
     tasks = []
     for i, (gt_item, pred_item) in enumerate(zip(gt_list, pred_list)):
         tasks.append((
-            i, gt_item, pred_item, data_root,
+            i, gt_item, pred_item, data_root_1,data_root_2,compare_result_dir,
             3,  # min_samples
             25,  # residual_threshold
             50,  # max_trials
@@ -580,11 +644,11 @@ def batch_evaluation_multiple_pools(data_root, file1, file2):
     }
 
     # 保存结果
-    metric_res_path = os.path.join(data_root, "metrics_res.json")
+    metric_res_path = os.path.join(compare_result_dir, "metrics_res.json")
     with open(metric_res_path, "w") as f:
         json.dump(metrics_res, f, indent=2)
 
-    return metrics_res, metric_res_path, os.path.join(data_root, "vis_match"), gt_list, pred_list
+    return metric_res_path,test_cases_file_path
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--input', '-i', type=str, default="assets/example/input_example.json")
