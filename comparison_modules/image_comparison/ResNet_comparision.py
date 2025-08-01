@@ -4,13 +4,12 @@ import torchvision.models as models
 import torchvision.transforms as transforms
 from PIL import Image
 import torch.nn.functional as F
-from .logger import setup_logger
-
-logger = setup_logger()
+import logging
+logger = logging.getLogger("image_compare")
 
 
 def resnet_cosine_similarity(img_path1, img_path2,threshold=0.95):
-    logger.info(f"余弦相似度开始对比图片：{img_path1}和{img_path2}")
+    logger.debug(f"余弦相似度开始对比图片：{img_path1}和{img_path2}")
     # 1. 加载预训练ResNet50模型（移除全连接层）
     model = models.resnet50(pretrained=True)
     model = torch.nn.Sequential(*list(model.children())[:-1])  # 移除最后一层分类层
@@ -41,5 +40,5 @@ def resnet_cosine_similarity(img_path1, img_path2,threshold=0.95):
     similarity = F.cosine_similarity(features1.unsqueeze(0), features2.unsqueeze(0), dim=1)
     score = similarity.item()
     is_similar = score >= threshold
-    logger.info(f"余弦相似度对比结束：{img_path1}和{img_path2}，分数：{score},阈值:{threshold}")
+    logger.debug(f"余弦相似度对比结束：{img_path1}和{img_path2}，分数：{score},阈值:{threshold}")
     return score,is_similar

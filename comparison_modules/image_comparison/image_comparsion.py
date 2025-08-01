@@ -35,26 +35,35 @@ def compare_together_wrapper(args):
 
 # 原始对比函数（增加锁参数）
 def compare_together(image1, image2, outputdir, lock=None):
-    os.makedirs(outputdir, exist_ok=True)
     base1 = os.path.splitext(os.path.basename(image1))[0]
     base2 = os.path.splitext(os.path.basename(image2))[0]
     
     # 执行图像对比算法
-    score_SSIM, is_similar_SSIM = compare_images_SSIM(image1, image2)
-    if is_similar_SSIM:
-        score_ResNet, is_similar_ResNet = resnet_cosine_similarity(image1, image2)
-    else:
-        score_ResNet, is_similar_ResNet = 0 ,False
-    # 加锁写入结果
-    log_entry = (
-        f"{datetime.now()}  {base1}和{base2}的SSIM分数是{score_SSIM}，"
-        f"是否相似：{is_similar_SSIM}，余弦相似度分数是{score_ResNet}，"
-        f"是否相似：{is_similar_ResNet}\n"
-    )
+    try:
+        score_SSIM, is_similar_SSIM = compare_images_SSIM(image1, image2)
+        if is_similar_SSIM:
+            score_ResNet, is_similar_ResNet = resnet_cosine_similarity(image1, image2)
+        else:
+            score_ResNet, is_similar_ResNet = 0 ,False
+
+        # 加锁写入结果
+        log_entry = (
+            f"{datetime.now()}  {base1}和{base2}的SSIM分数是{score_SSIM}，"
+            f"是否相似：{is_similar_SSIM}，余弦相似度分数是{score_ResNet}，"
+            f"是否相似：{is_similar_ResNet}\n"
+        )
+
+    except Exception as e:
+        tb_str = traceback.format_exc()
+        logger.error(f"{image1}和{image2}对比失败: {e}\n{tb_str}")
+        log_entry = f"{image1}和{image2}对比失败: {e}\n{tb_str}"
+        is_similar_SSIM,is_similar_ResNet = False,False
+        score_SSIM, score_ResNet =0,0
     if lock:
         with lock:
             with open(os.path.join(outputdir, "compare_score.txt"), 'a', encoding='utf-8') as file:
                 file.write(log_entry)
+
     
     # 计算综合得分
     return (score_SSIM + score_ResNet)/2 if (is_similar_SSIM and is_similar_ResNet) else 0
@@ -65,7 +74,7 @@ def compare_image_list(image_dir1, image_dir2, outputdir, num_processes=4):
     try:
         logger.info(f"开始对比图片文件夹: {image_dir1} vs {image_dir2}，进程数{num_processes}")
         image_exts = ('.jpg', '.jpeg', '.png')
-        
+        os.makedirs(outputdir, exist_ok=True)
         # 获取图像列表
         image_list1 = sorted([
             os.path.join(image_dir1, f) 
@@ -77,7 +86,7 @@ def compare_image_list(image_dir1, image_dir2, outputdir, num_processes=4):
             for f in os.listdir(image_dir2) 
             if f.lower().endswith(image_exts)
         ])
-        
+        logger.info(f"文件夹下图片个数: {len(image_list1)} vs {len(image_list2)}")
         # 初始化共享资源
         manager = Manager()
         lock = manager.Lock()  # 跨进程文件锁
@@ -113,6 +122,7 @@ def compare_image_list(image_dir1, image_dir2, outputdir, num_processes=4):
         
         # 匹配相似图片对
         same_pairs = []
+        #只取最高分
         for i in range(len(image_list1)):
             max_score = 0
             max_j = -1
@@ -125,7 +135,11 @@ def compare_image_list(image_dir1, image_dir2, outputdir, num_processes=4):
             if max_score > 0 and max_j != -1:
                 same_pairs.append((i, max_j))
                 logger.info(f"最佳匹配: {image_list1[i]} -> {image_list2[max_j]} (分数={max_score:.4f})")
-
+        # 取所有匹配结果为True的
+        # for i in range(len(image_list1)):
+        #     for j in range(len(image_list2)):
+        #         if diff_matrix[i][j] > 0:
+        #             same_pairs.append((i, j))
         with open(os.path.join(outputdir, "compare_same_index.txt"), 'w', encoding='utf-8') as f:
             json.dump(same_pairs, f,ensure_ascii=False)
         with open(os.path.join(outputdir, "compare_image1.txt"), 'w', encoding='utf-8') as f:

@@ -14,3 +14,14 @@ utils/__pycache__/precheck.cpython-310.pyc
 utils/__pycache__/tokenize.cpython-310.pyc
 image_compare.log
 diff.log
+requirements.txt
+comparison_modules/image_comparison/__pycache__/logger.cpython-310.pyc
+comparison_modules/image_comparison/__pycache__/logging.cpython-310.pyc
+comparison_modules/latex_comparison/__pycache__/mf_parse_tree.cpython-310.pyc
+new0731/CPS1000_V_W20250731_1440/token处理结果/Print_of_CPS1000_V_中英对照_内部.pdf_token.txt
+new0731/CPS1000_V_W20250731_1440/token处理结果/Print_of_CPS1000_W_中英对照_内部.pdf_token.txt
+new0731/CPS1000_V_W20250731_1440/图片对比结果/compare_score.txt
+new0731/CPS1000_V_W20250731_1500/token处理结果/Print_of_CPS1000_V_中英对照_内部.pdf_token.txt
+new0731/CPS1000_V_W20250731_1500/token处理结果/Print_of_CPS1000_W_中英对照_内部.pdf_token.txt
+new0731/CPS1000_V_W20250731_1500/图片对比结果/compare_score.txt
+utils/__pycache__/logging.cpython-310.pyc

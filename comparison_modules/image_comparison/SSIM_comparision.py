@@ -4,13 +4,13 @@ import cv2
 import numpy as np
 from skimage.metrics import structural_similarity as ssim
 import matplotlib.pyplot as plt
-from .logger import setup_logger
 
-logger = setup_logger()
+
+logger = logging.getLogger("image_compare")
 
 
 def compare_images_SSIM(image_path1, image_path2,threshold=0.95,debug = False,result_output_path=""):
-    logger.info(f"SSIM开始对比图片：{image_path1}和{image_path2}")
+    logger.debug(f"SSIM开始对比图片：{image_path1}和{image_path2}")
     # 1. 读取图片并统一尺寸
     with open(image_path1, "rb") as f:
         img_data = np.frombuffer(f.read(), dtype=np.uint8)
@@ -48,13 +48,13 @@ def compare_images_SSIM(image_path1, image_path2,threshold=0.95,debug = False,re
         axes[2].axis('off')
         
         plt.tight_layout()
-        plt.savefig('ssim_comparison_result.jpg', dpi=120)
+        plt.savefig(result_output_path, dpi=120)
         plt.show()
     else:
         # 3. 计算SSIM值和差异图
         score = ssim(gray1, gray2, full=False, win_size=11, data_range=255)
     is_similar = score >= threshold
     
-    logger.info(f"SSIM对比结束：{image_path1}和{image_path2}，分数：{score},阈值:{threshold}")
+    logger.debug(f"SSIM对比结束：{image_path1}和{image_path2}，分数：{score},阈值:{threshold}")
     return score, is_similar
 
