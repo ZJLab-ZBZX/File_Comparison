@@ -19,6 +19,8 @@ from queue import Queue
 import re
 import json
 import numpy as np
+from utils.draw_result import draw_result
+
 with open('./configs/categories.json', 'r') as f:
     config = json.load(f)
     ocr_categories = config["ocr_categories"]
@@ -140,6 +142,9 @@ async def compare(src_dir,dst_dir,output_dir):
                 })
         with open(os.path.join(output_dir,'result.json'), 'w', encoding='utf-8') as f:
             json.dump(result, f, ensure_ascii=False, indent=4)
+        draw_output = os.path.join(output_dir,"最终结果_图片")
+        draw_result(diff_cats,src_dir,src_diff_seg_page_ids,src_diff_rects,src_diff_texts,draw_output)
+        draw_result(diff_cats,dst_dir,dst_diff_seg_page_ids,dst_diff_rects,dst_diff_texts,draw_output)
     except Exception as e:
         tb_str = traceback.format_exc()  # 返回 Traceback 字符串
         main_logger.error(f"对比失败：{src_dir}和{dst_dir}: {e}\n{tb_str}")
