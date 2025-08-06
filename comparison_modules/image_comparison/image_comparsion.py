@@ -46,6 +46,7 @@ def compare_together(src_image, dst_image, outputdir, lock=None):
             f"{datetime.now()}  {base1}和{base2}的SSIM分数是{score_SSIM}，"
             f"是否相似：{is_similar_SSIM}\n"
         )
+        logger.debug(f"图片对比结束：{src_image}, {dst_image}")
 
     except Exception as e:
         tb_str = traceback.format_exc()
@@ -57,7 +58,7 @@ def compare_together(src_image, dst_image, outputdir, lock=None):
             with open(os.path.join(outputdir, "compare_score.txt"), 'a', encoding='utf-8') as file:
                 file.write(log_entry)
 
-    
+    logger.debug(f"图片分数{score_SSIM}：{src_image}, {dst_image}")
     # 计算综合得分
     return score_SSIM if is_similar_SSIM else 0
 

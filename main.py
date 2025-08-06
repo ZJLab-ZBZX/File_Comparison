@@ -79,11 +79,12 @@ async def compare(src_dir,dst_dir,output_dir):
             async_call(compare_image_list, src_images_dir,dst_images_dir,os.path.join(output_dir,"图片对比结果"),os.cpu_count()+1),
             async_call(batch_compare,mf_path1,mf_path2)
         ]
-        # 获取处理结果
-        main_logger.info(f"完成图片、公式和表格处理：{src_dir}和{dst_dir}")
+        
         results = await asyncio.gather(*tasks, return_exceptions=True)
         if False in results :
             raise RuntimeError(f"数据对比失败，图片处理模块、公式处理模块和表格处理模块处理结果依次为：{results}")
+        # 获取处理结果
+        main_logger.info(f"完成图片、公式和表格处理：{src_dir}和{dst_dir}")
         main_logger.info(f"开始特殊token处理，开始diff：{src_dir}和{dst_dir}")
         image_result_path = results[0]
         with open(image_result_path, 'r', encoding='utf-8') as f:
