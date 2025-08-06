@@ -143,6 +143,7 @@ async def compare(src_dir,dst_dir,output_dir):
         with open(os.path.join(output_dir,'result.json'), 'w', encoding='utf-8') as f:
             json.dump(result, f, ensure_ascii=False, indent=4)
         draw_output = os.path.join(output_dir,"最终结果_图片")
+        os.makedirs(draw_output,exist_ok=True)
         draw_result(diff_cats,src_dir,src_diff_seg_page_ids,src_diff_rects,src_diff_texts,draw_output)
         draw_result(diff_cats,dst_dir,dst_diff_seg_page_ids,dst_diff_rects,dst_diff_texts,draw_output)
     except Exception as e:
