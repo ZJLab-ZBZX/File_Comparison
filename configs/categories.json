@@ -1,0 +1,31 @@
+{
+    "ocr_categories": [
+        "title",
+        "plain_text",
+        "abandon",
+        "figure",
+        "figure_caption",
+        "table",
+        "table_caption",
+        "table_footnote",
+        "isolate_formula",
+        "formula_caption",
+        " ",
+        " ",
+        " ",
+        "inline_formula",
+        "isolated_formula"
+    ],
+    "filter_categories": [
+        "title",
+        "plain_text",
+        "figure_caption",
+        "table_caption",
+        "table_footnote",
+        "formula_caption",
+        "isolated_formula",
+        "isolate_formula",
+        "figure",
+        "table"
+    ]
+}

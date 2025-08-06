@@ -2,8 +2,10 @@ import re
 import numpy as np
 import json
 import os
-from utils.deal_text import clean_dollar_equations
+import glob, os
+import json, re
 
+# 文本tokenize
 def custom_tokenize(text, abandon=r'[\s]+'):  
     # 优先匹配特殊模式 ![](tables/任意字符) 、![](figures/任意字符) 、\[任意字符\]、\(任意字符\)
     special_pattern = r'!\[\]\(tables/[^)]+\)|!\[\]\(figures/[^)]+\)|\\\[.*?\\\]|\\\(.*?\\\)'
@@ -69,9 +71,74 @@ def custom_tokenize(text, abandon=r'[\s]+'):
     token_is_sp = token_is_sp[inds].tolist()
     return tokens, spans, token_is_sp
 
+def extend_lists(ll):
+    l = [e for l in ll for e in l]
+    return l
 
 
-def special_tokenize(tokens, token_is_sp,new_figures_map,new_mf_map,token_output):
+# 按照检测框tokenize
+def tokenize_det_result(det_dir, page_id, ocr_categories,filter_categories):
+    # 1. 加载.npy文件并过滤需要的类别
+    label_name = os.path.join(det_dir, '{}.npy'.format(page_id))
+    layout_dets = [det for det in np.load(label_name, allow_pickle=True).tolist()['layout_dets'] if ocr_categories[det['category_id']] in filter_categories]   
+    # 这里的seg并不是line seg，即原始检测框，而是ptmf，即mf_split之后的检测框
+    # 2. 提取文本段和矩形框
+    det_segs = np.array(extend_lists([det['ptrmfr_texts'] if ocr_categories[det['category_id']] not in ['figure', 'table']
+                                      else ['![]({})'.format(det['url'])] for det in layout_dets]), object)
+    det_rects = np.array(extend_lists([det['ptmf_rects'] if ocr_categories[det['category_id']] not in ['figure', 'table']
+                                      else [[det['poly'][0], det['poly'][1], det['poly'][4], det['poly'][5]]] for det in layout_dets]))
+    # 4. 处理数学公式的特殊标记
+    det_seg_is_mf = np.array([seg.startswith('$') for seg in det_segs])
+    det_seg_is_mf_iso = np.array([seg.startswith('$$') for seg in det_segs])
+    det_segs[det_seg_is_mf_iso] = list(map(lambda x: '\[{}\]'.format(x[2:-2]), det_segs[det_seg_is_mf_iso]))
+    det_segs[det_seg_is_mf*(~det_seg_is_mf_iso)] = list(map(lambda x: '\({}\)'.format(x[1:-1]), det_segs[det_seg_is_mf*(~det_seg_is_mf_iso)]))
+    # 5. 对每个文本段进行tokenize处理
+    det_seg_tokens, det_seg_token_spans, det_seg_token_is_sp = list(map(list, list(zip(*[custom_tokenize(seg) for seg in det_segs]))))  
+    # 6. 统计每个文本段的token数量
+    det_seg_token_nums = [len(det_seg_tokens[i]) for i in range(len(det_seg_tokens))]
+    det_tokens = np.array(extend_lists(det_seg_tokens), object)
+    det_token_is_sp = np.array(extend_lists(det_seg_token_is_sp), object)
+    det_token_rect_ids = np.repeat(np.arange(len(det_segs)), det_seg_token_nums)
+    return det_segs, det_rects, det_seg_tokens, det_seg_token_spans, det_tokens,det_token_is_sp, det_token_rect_ids
+
+#全文tokenize
+def tokenize_doc(det_dir, ocr_categories,filter_categories,debug = False ,output_dir =""):
+    page_num = np.max([int(os.path.basename(name).split('.npy')[0]) for name in glob.glob(os.path.join(det_dir, '*.npy'))])
+    doc_segs = [] 
+    doc_rects = [] 
+    doc_seg_tokens = [] 
+    doc_seg_token_spans = [] 
+    doc_seg_page_ids = []
+    doc_tokens = [] 
+    doc_token_is_sp = []
+    doc_token_rect_ids = []
+    num_rects = 0
+    for i_page in range(page_num): 
+        page_id = str(i_page+1).zfill(len(str(page_num)))
+        det_segs, det_rects, det_seg_tokens, det_seg_token_spans, det_tokens,det_token_is_sp, det_token_rect_ids = tokenize_det_result(det_dir, page_id, ocr_categories,filter_categories)
+        doc_segs.append(det_segs)
+        doc_rects.append(det_rects)
+        doc_seg_tokens.extend(det_seg_tokens)
+        doc_seg_token_spans.extend(det_seg_token_spans)
+        doc_seg_page_ids.extend([page_id] * len(det_segs))
+        doc_tokens.append(det_tokens)
+        doc_token_is_sp.append(det_token_is_sp)
+        doc_token_rect_ids.append(det_token_rect_ids + num_rects)
+        num_rects += len(det_rects)
+    doc_segs = np.hstack(doc_segs)
+    doc_rects = np.concatenate(doc_rects, axis=0)
+    doc_seg_page_ids = np.array(doc_seg_page_ids, object)
+    doc_tokens = np.hstack(doc_tokens)
+    doc_token_is_sp = np.hstack(doc_token_is_sp)
+    doc_token_rect_ids = np.hstack(doc_token_rect_ids)
+    if debug:
+        with open(os.path.join(output_dir,os.path.basename(os.path.dirname(det_dir))+"_token.txt"), 'w', encoding='utf-8') as f:
+            for item in doc_tokens:
+                f.write(f"{item}\n")
+    return doc_segs, doc_rects, doc_seg_tokens, doc_seg_token_spans, doc_seg_page_ids, doc_tokens, doc_token_is_sp,doc_token_rect_ids
+
+# 特殊token替换
+def special_tokenize_replace(tokens, token_is_sp,new_figures_map,new_mf_map,token_output):
     special_token = [index for index,value in enumerate(token_is_sp) if value == True]
     figures_index = [index for index in special_token if "![](figures/" in tokens[index]]
     tables_index = [index for index in special_token if "![](tables/" in tokens[index]]
@@ -93,6 +160,7 @@ def special_tokenize(tokens, token_is_sp,new_figures_map,new_mf_map,token_output
             f.write(f"{item}\n")
     return tokens
 
+# 获取公式token
 def get_mf_token(tokens, token_is_sp,output_path):
     special_token = [index for index,value in enumerate(token_is_sp) if value == True]
     mf = [tokens[index] for index in special_token if  "![](tables/" not in tokens[index] and "![](figures/" not in tokens[index]]   
@@ -101,6 +169,7 @@ def get_mf_token(tokens, token_is_sp,output_path):
         json.dump(mf, f)
     return mf_index
 
+#公式token转化为<mf{数字}>
 def convert_mf_token(mf_list,mf_index1,mf_index2,prefix1,prefix2,outputdir):
     number = 347262538
     new_mf1_map = {}
@@ -123,22 +192,3 @@ def convert_mf_token(mf_list,mf_index1,mf_index2,prefix1,prefix2,outputdir):
         }, f, indent=4, ensure_ascii=False)
     return new_mf1_map,new_mf2_map
 
-
-def tokenize_files(md_file_verison1,md_file_verison2,debug = False,output_dir=""):
-    os.makedirs(output_dir,exist_ok=True)
-    with open(md_file_verison1, 'r', encoding='utf-8') as f:
-        version1_text = f.read() 
-    version1_text = clean_dollar_equations(version1_text)
-    version1_tokens, version1_spans, version1_token_is_sp = custom_tokenize(version1_text)
-    with open(md_file_verison2, 'r', encoding='utf-8') as f:
-        version2_text = f.read()
-    version2_text = clean_dollar_equations(version2_text)
-    version2_tokens, version2_spans, version2_token_is_sp = custom_tokenize(version2_text)
-    if debug:
-        with open(os.path.join(output_dir,os.path.splitext(os.path.basename(md_file_verison1))[0]+"_token.txt"), 'w', encoding='utf-8') as f:
-            for item in version1_tokens:
-                f.write(f"{item}\n")
-        with open(os.path.join(output_dir,os.path.splitext(os.path.basename(md_file_verison2))[0]+"_token.txt"), 'w', encoding='utf-8') as f:
-            for item in version2_tokens:
-                f.write(f"{item}\n")
-    return version1_tokens, version1_spans, version1_token_is_sp,version2_tokens, version2_spans, version2_token_is_sp

@@ -25,3 +25,6 @@ new0731/CPS1000_V_W20250731_1500/token处理结果/Print_of_CPS1000_V_中英对�
 new0731/CPS1000_V_W20250731_1500/token处理结果/Print_of_CPS1000_W_中英对照_内部.pdf_token.txt
 new0731/CPS1000_V_W20250731_1500/图片对比结果/compare_score.txt
 utils/__pycache__/logging.cpython-310.pyc
+latex_comparison.log
+comparison_modules/latex_comparison/__pycache__/logger.cpython-310.pyc
+comparison_modules/latex_comparison/__pycache__/data_processor.cpython-310.pyc
