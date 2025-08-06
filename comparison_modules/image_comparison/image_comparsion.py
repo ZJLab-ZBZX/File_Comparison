@@ -108,12 +108,13 @@ def compare_image_list(image_dir1, image_dir2, outputdir, num_processes=4):
         # 等待所有任务完成
         myPool.close()
         myPool.join()
-        logger.info(f"图片相似度计算完成：{image_dir1} vs {image_dir2}")
-        # 收集结果并填充矩阵
         for res in async_results:
-            i, j, score = res.get()
-            diff_matrix[i][j] = score
-        
+            try:
+                i, j, score = res.get()
+                diff_matrix[i][j] = score
+            except Exception as e:
+                logger.error(f"任务失败: {e}{traceback.format_exc()}")
+        logger.info(f"图片相似度计算完成：{image_dir1} vs {image_dir2}")
         # 匹配相似图片对
         same_pairs = get_same_groups(diff_matrix, src_image_list, dst_image_list,outputdir)
         with open(os.path.join(outputdir, "compare_src_image.txt"), 'w', encoding='utf-8') as f:

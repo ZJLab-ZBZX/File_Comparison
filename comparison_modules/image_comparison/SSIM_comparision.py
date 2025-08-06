@@ -54,7 +54,6 @@ def compare_images_SSIM(src_image_path, dst_image_path,threshold=0.95,debug = Fa
         # 3. 计算SSIM值和差异图
         score = ssim(src_gray, dst_gray, full=False, win_size=11, data_range=255)
     is_similar = score >= threshold
-    
     logger.debug(f"SSIM对比结束：{src_image_path}和{dst_image_path}，分数：{score},阈值:{threshold}")
     return score, is_similar
 
