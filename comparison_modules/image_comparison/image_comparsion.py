@@ -114,21 +114,21 @@ def compare_image_list(image_dir1, image_dir2, outputdir, num_processes=4):
             diff_matrix[i][j] = score
         
         # 匹配相似图片对
-        same_groups = get_same_groups(diff_matrix, src_image_list, dst_image_list,outputdir)
+        same_pairs = get_same_groups(diff_matrix, src_image_list, dst_image_list,outputdir)
         with open(os.path.join(outputdir, "compare_src_image.txt"), 'w', encoding='utf-8') as f:
             json.dump(src_image_list, f,ensure_ascii=False)
         with open(os.path.join(outputdir, "compare_dst_image.txt"), 'w', encoding='utf-8') as f:
             json.dump(dst_image_list, f,ensure_ascii=False)
 
         # 生成并保存映射关系
-        new_src_image_map, new_dst_image_map = convert_token(src_image_list, dst_image_list, same_groups)
+        new_src_image_map, new_dst_image_map = convert_token(src_image_list, dst_image_list, same_pairs)
         with open(os.path.join(outputdir, "compare_same_images.json"), 'w', encoding='utf-8') as f:
             json.dump({
                 Path(image_dir1).parts[-2]: new_src_image_map,
                 Path(image_dir2).parts[-2]: new_dst_image_map
             }, f, indent=4, ensure_ascii=False)
         
-        logger.info(f"完成对比: 共匹配{len(same_pairs)}对图像")
+        logger.info(f"完成对比: {image_dir1} vs {image_dir2} 共匹配{len(same_pairs)}对图像")
         return os.path.join(outputdir, "compare_same_images.json")
         
     except Exception as e:
