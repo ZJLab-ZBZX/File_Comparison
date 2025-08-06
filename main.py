@@ -84,6 +84,7 @@ async def compare(src_dir,dst_dir,output_dir):
         results = await asyncio.gather(*tasks, return_exceptions=True)
         if False in results :
             raise RuntimeError(f"数据对比失败，图片处理模块、公式处理模块和表格处理模块处理结果依次为：{results}")
+        main_logger.info(f"开始特殊token处理，开始diff：{src_dir}和{dst_dir}")
         image_result_path = results[0]
         with open(image_result_path, 'r', encoding='utf-8') as f:
             json_data = json.load(f)
@@ -112,6 +113,7 @@ async def compare(src_dir,dst_dir,output_dir):
         show_diff(src_new_token,dst_new_token,output_dir=result_dir,is_processed=True,opcodes=processed_opcodes,name="diff_processed.html")
         shutil.copy2(os.path.join(result_dir,"diff_processed.html"),os.path.join(output_dir,"diff_processed.html"))
         # diff结果转化为坐标+说明
+        main_logger.info(f"开始转化坐标：{src_dir}和{dst_dir}")
         diff_cats, src_diff_start_tids, src_diff_end_tids, dst_diff_start_tids, dst_diff_end_tids = list(map(lambda x: np.array(list(x)), zip(*processed_opcodes)))
         src_diff_end_tids = src_diff_end_tids - 1
         dst_diff_end_tids = dst_diff_end_tids - 1
@@ -142,6 +144,7 @@ async def compare(src_dir,dst_dir,output_dir):
                 })
         with open(os.path.join(output_dir,'result.json'), 'w', encoding='utf-8') as f:
             json.dump(result, f, ensure_ascii=False, indent=4)
+        main_logger.info(f"开始绘制结果文件：{src_dir}和{dst_dir}")
         draw_output = os.path.join(output_dir,"最终结果_图片")
         os.makedirs(draw_output,exist_ok=True)
         draw_result(diff_cats,src_dir,src_diff_seg_page_ids,src_diff_rects,src_diff_texts,draw_output)
