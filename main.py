@@ -47,7 +47,7 @@ listener = QueueListener(log_queue, file_handler,stream_handler)
 listener.start()
 
 # 配置Logger
-main_logger = logging.getLogger()
+main_logger = logging.getLogger("main_logger")
 main_logger.setLevel(logging.INFO)
 main_logger.addHandler(QueueHandler(log_queue))  # 主线程仅推队列
 
@@ -146,10 +146,12 @@ async def compare(src_dir,dst_dir,output_dir):
         with open(os.path.join(output_dir,'result.json'), 'w', encoding='utf-8') as f:
             json.dump(result, f, ensure_ascii=False, indent=4)
         main_logger.info(f"开始绘制结果文件：{src_dir}和{dst_dir}")
-        draw_output = os.path.join(output_dir,"最终结果_图片")
-        os.makedirs(draw_output,exist_ok=True)
-        draw_result(diff_cats,src_dir,src_diff_seg_page_ids,src_diff_rects,src_diff_texts,draw_output)
-        draw_result(diff_cats,dst_dir,dst_diff_seg_page_ids,dst_diff_rects,dst_diff_texts,draw_output)
+        src_draw_output = os.path.join(output_dir,"最终结果_图片","src")
+        dst_draw_output = os.path.join(output_dir,"最终结果_图片","dst")
+        os.makedirs(src_draw_output,exist_ok=True)
+        os.makedirs(dst_draw_output,exist_ok=True)
+        draw_result(diff_cats,src_debug_dir,src_diff_seg_page_ids,src_diff_rects,src_diff_texts,src_draw_output)
+        draw_result(diff_cats,dst_debug_dir,dst_diff_seg_page_ids,dst_diff_rects,dst_diff_texts,dst_draw_output)
     except Exception as e:
         tb_str = traceback.format_exc()  # 返回 Traceback 字符串
         main_logger.error(f"对比失败：{src_dir}和{dst_dir}: {e}\n{tb_str}")
