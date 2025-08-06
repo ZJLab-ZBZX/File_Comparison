@@ -190,7 +190,7 @@ def get_same_groups(diff_matrix, src_image_list, dst_image_list,outputdir):
             "src_image": [src_image_list[i] for i in group_i],
             "dst_image": [dst_image_list[j] for j in group_j]
         })
-        logger.info(f"相同图片组: {group_i} -> {group_j}")
+        logger.info(f"相同图片组: {same_groups}")
         
     # 保存结果
     with open(os.path.join(outputdir, "compare_same_index.txt"), 'w', encoding='utf-8') as f:
@@ -203,8 +203,8 @@ def convert_token(src_image_list,dst_image_list,same_groups):
     new_src_image_map = {}
     new_dst_image_map = {}
     for group in same_groups:
-        new_src_image_map.update({os.path.basename(image): f"<image{number}>" for image in group["src_image"]})
-        new_dst_image_map.update({os.path.basename(image): f"<image{number}>" for image in group["dst_image"]})
+        new_src_image_map.update({"![](figures/" + os.path.basename(image)+ ")": f"<image{number}>" for image in group["src_image"]})
+        new_dst_image_map.update({"![](figures/" + os.path.basename(image)+ ")": f"<image{number}>" for image in group["dst_image"]})
         number += 1
     return new_src_image_map, new_dst_image_map
 
