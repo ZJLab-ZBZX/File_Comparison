@@ -1,11 +1,10 @@
 import asyncio
-from comparison_modules.image_comparison.image_comparsion import compare_image_list
 from utils.difflib_modified import SequenceMatcher
 import os
 import shutil
 import logging
 import traceback
-from comparison_modules.image_comparison.image_comparsion import compare_image_list
+from comparison_modules.image_comparison.image_comparsion_multi_process import compare_image_list
 from datetime import datetime
 from utils.tokenize import tokenize_doc,get_mf_token,special_tokenize_replace,convert_mf_token
 from utils.postprocessor import process_result,write_diff,show_diff,locate_diff
@@ -87,11 +86,13 @@ async def compare(src_dir,dst_dir,output_dir):
         main_logger.info(f"完成图片、公式和表格处理：{src_dir}和{dst_dir}")
         main_logger.info(f"开始特殊token处理，开始diff：{src_dir}和{dst_dir}")
         image_result_path = results[0]
+        # image_result_path = "D:/文件对比/CPS1000_V_W20250806_0907/图片对比结果/compare_same_images.json"
         with open(image_result_path, 'r', encoding='utf-8') as f:
             json_data = json.load(f)
         new_image1_map = json_data[os.path.basename(src_dir)]
         new_image2_map = json_data[os.path.basename(dst_dir)]
         mf_result = read_txt_to_2d_list(results[1])
+        # mf_result = read_txt_to_2d_list("D:/文件对比/CPS1000_V_W20250806_0907/passed_pairs_chain.txt")
         new_mf1_map,new_mf2_map = convert_mf_token(mf_result,
                                                    mf_index1=mf_index1,mf_index2=mf_index2,
                                                    prefix1=os.path.basename(src_dir).split(".")[0],
@@ -173,6 +174,8 @@ def main():
     # 使用命令行输入的路径
     root_dir = args.root_dir
     output_dir = args.output_dir
+    # root_dir = "D:/文件对比/西子数据"
+    # output_dir = "output20250806"
     main_logger.info(f"对比文件夹目录：{root_dir}，结果输出目录：{output_dir}")
     if not os.path.exists(root_dir):
         main_logger.error(f"指定的路径不存在: {root_dir}")
