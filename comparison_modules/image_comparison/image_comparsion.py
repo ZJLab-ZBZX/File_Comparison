@@ -47,9 +47,9 @@ def compare_together(src_image, dst_image, outputdir, lock=None):
         with ThreadPoolExecutor(max_workers=1) as executor:
             future = executor.submit(_compute_ssim)
             try:
-                score_SSIM, is_similar_SSIM = future.result(timeout=2) 
+                score_SSIM, is_similar_SSIM = future.result(timeout=3) 
             except TimeoutError:
-                logger.warning(f"SSIM计算超时: {src_image}")
+                logger.warning(f"SSIM计算超时: {src_image}和{dst_image}")
                 score_SSIM, is_similar_SSIM = 0.0, False
 
         # 加锁写入结果
