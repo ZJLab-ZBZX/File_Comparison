@@ -6,7 +6,7 @@ from multiprocessing import Pool, Manager
 from .SSIM_comparision import compare_images_SSIM
 from pathlib import Path
 from .logger import setup_logger
-
+from concurrent.futures import ThreadPoolExecutor, TimeoutError
 logger = setup_logger()
 
 
@@ -36,10 +36,21 @@ def compare_together_wrapper(args):
 def compare_together(src_image, dst_image, outputdir, lock=None):
     base1 = os.path.splitext(os.path.basename(src_image))[0]
     base2 = os.path.splitext(os.path.basename(dst_image))[0]
-    
+    def _compute_ssim():
+        try:
+            return compare_images_SSIM(src_image, dst_image)
+        except Exception as e:
+            logger.error(f"SSIM计算错误: {e}")
+            return 0.0, False
     # 执行图像对比算法
     try:
-        score_SSIM, is_similar_SSIM = compare_images_SSIM(src_image, dst_image)
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(_compute_ssim)
+            try:
+                score_SSIM, is_similar_SSIM = future.result(timeout=2) 
+            except TimeoutError:
+                logger.warning(f"SSIM计算超时: {src_image}")
+                score_SSIM, is_similar_SSIM = 0.0, False
 
         # 加锁写入结果
         log_entry = (
@@ -53,10 +64,15 @@ def compare_together(src_image, dst_image, outputdir, lock=None):
         logger.error(f"{src_image}和{dst_image}对比失败: {e}\n{tb_str}")
         log_entry = f"{src_image}和{dst_image}对比失败: {e}\n{tb_str}"
         score_SSIM,is_similar_SSIM = 0,False
-    if lock:
-        with lock:
-            with open(os.path.join(outputdir, "compare_score.txt"), 'a', encoding='utf-8') as file:
-                file.write(log_entry)
+        if lock:
+            with lock:
+                try:
+                    # 使用更可靠的文件写入方式
+                    with open(os.path.join(outputdir, "compare_score.txt"), 'a', encoding='utf-8') as file:
+                        file.write(log_entry)
+                        file.flush()  # 立即刷新缓冲区
+                except Exception as e:
+                    logger.error(f"写入分数失败: {e}\n{traceback.format_exc()}")
 
     logger.debug(f"图片分数{score_SSIM}：{src_image}, {dst_image}")
     # 计算综合得分
