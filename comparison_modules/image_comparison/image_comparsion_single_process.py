@@ -14,17 +14,17 @@ def compare_together(src_image, dst_image,method = "ssim"):
     # 执行图像对比算法
     result = False
     try:
-        match method.lower():
-            case "ssim":
-                score, is_similar = compare_images_SSIM(src_image, dst_image)
-            case "ahash":
-                score, is_similar = compare_images_aHash(src_image, dst_image)
-            case "dhash":
-                score, is_similar = compare_images_dHash(src_image, dst_image)
-            case "phash":
-                score, is_similar = compare_images_pHash(src_image, dst_image)
-            case _:
-                raise ValueError(f"不支持的方法: {method}. 请选择 'SSIM' 或 'Hash'")
+        method = method.lower()
+        if method == "ssim":
+            score, is_similar = compare_images_SSIM(src_image, dst_image)
+        elif method == "ahash":
+            score, is_similar = compare_images_aHash(src_image, dst_image)
+        elif method == "dhash":
+            score, is_similar = compare_images_dHash(src_image, dst_image)
+        elif method == "phash":
+            score, is_similar = compare_images_pHash(src_image, dst_image)
+        else:
+            raise ValueError(f"不支持的方法: {method}. 请选择 'SSIM' 或 'Hash'")
         result = True
     except Exception as e:
         tb_str = traceback.format_exc()
